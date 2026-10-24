@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import type { AvatarHandle } from "./Avatar";
 import BodyMap, { type Region, type Symptom } from "./BodyMap";
 import { convexEnabled } from "./ConvexClientProvider";
@@ -32,19 +33,36 @@ export type Lesson = {
   takeaway?: string;
   facts: { text: string; sourceUrl: string; sourceOrg: string }[];
   urgent: boolean;
+  /** Med student lessons only. */
+  redFlags?: string[];
+  differential?: string[];
 };
 
-export default function Classroom({ condition, title }: { condition: string; title: string }) {
+/** A lesson the learner asked for, made from a typed topic or a linked page. */
+export type CustomLesson = { id: Id<"customLessons">; topic: string; lesson: Lesson };
+
+/** The teacher plus a lesson: one of the built-in conditions, or a made-to-order lesson. */
+export default function Classroom({
+  condition,
+  custom,
+  title,
+}: {
+  condition?: string;
+  custom?: CustomLesson;
+  title: string;
+}) {
   const avatar = useRef<AvatarHandle>(null);
-  const info = getCondition(condition)!;
+  const info = condition ? getCondition(condition) : undefined;
   const topic = /^[A-Z]+$/.test(title) ? title : title.toLowerCase();
   const [welcomed, setWelcomed] = useState(false);
   const [caption, setCaption] = useState(
-    `Hi, I'm your teacher. Today we'll look at how ${topic} can show up in women. Press begin when you're ready.`,
+    custom
+      ? `Hi, I'm your teacher. Today's lesson is about ${custom.topic}. Press begin when you're ready.`
+      : `Hi, I'm your teacher. Today we'll look at how ${topic} can show up in women. Press begin when you're ready.`,
   );
   const [lines, setLines] = useState<string[]>([]);
   // Lines already shown on the card aren't repeated under the teacher.
-  const onCard = lines.includes(caption) || caption === info.intro.text;
+  const onCard = lines.includes(caption) || caption === info?.intro.text;
 
   return (
     <div
@@ -74,7 +92,7 @@ export default function Classroom({ condition, title }: { condition: string; tit
             <button
               onClick={() => {
                 setWelcomed(true);
-                setCaption(info.intro.text);
+                setCaption(custom ? custom.lesson.scenario : info!.intro.text);
               }}
               className="mt-6 rounded-md bg-accent px-6 py-3 font-semibold text-white"
             >
@@ -87,13 +105,22 @@ export default function Classroom({ condition, title }: { condition: string; tit
             </div>
           )}
           {convexEnabled && welcomed && (
-            <AskTeacher condition={condition} lessonContext={lines.join(" ")} onAnswer={setCaption} />
+            <AskTeacher
+              condition={condition}
+              customId={custom?.id}
+              lessonContext={lines.join(" ")}
+              onAnswer={setCaption}
+            />
           )}
         </div>
       </aside>
 
       {!welcomed ? null : convexEnabled ? (
-        <Board condition={condition} onSay={setCaption} onLines={setLines} />
+        custom ? (
+          <LessonView lesson={custom.lesson} onSay={setCaption} onLines={setLines} busy={false} error={null} />
+        ) : (
+          <Board condition={condition!} onSay={setCaption} onLines={setLines} />
+        )
       ) : (
         <Panel>
           <p className="text-muted">Lessons are coming soon. The lesson service isn&apos;t connected yet.</p>
@@ -307,7 +334,7 @@ export function LessonView({
   lesson: Lesson;
   onSay: (text: string) => void;
   onLines?: (lines: string[]) => void;
-  onNewCase: () => Promise<boolean>;
+  onNewCase?: () => Promise<boolean>;
   onCheck?: () => void;
   busy: boolean;
   error: string | null;
@@ -439,6 +466,26 @@ export function LessonView({
               </div>
             )}
 
+            {(lesson.redFlags?.length || lesson.differential?.length) ? (
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 [transform-style:preserve-3d]">
+                {[
+                  ["Red flags", lesson.redFlags, "text-alert"],
+                  ["Also consider", lesson.differential, "text-accent"],
+                ].map(([label, items, tone], i) =>
+                  (items as string[] | undefined)?.length ? (
+                    <div key={label as string} className="chip rise p-4" style={at(5 + i, 24)}>
+                      <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${tone}`}>{label as string}</p>
+                      <ul className="mt-2 grid list-disc gap-1 pl-4 text-sm">
+                        {(items as string[]).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            ) : null}
+
             {lesson.takeaway && (
               <p className="rise mt-8 border-l-2 border-accent pl-4 font-serif text-lg leading-snug" style={at(4, 16)}>
                 {lesson.takeaway}
@@ -474,7 +521,8 @@ export function LessonView({
               <button onClick={() => goTo(0)} className="rounded-md border border-line px-4 py-2 text-sm">
                 Review the case
               </button>
-              <button
+              {onNewCase && (
+                <button
                 onClick={async () => {
                   if (await onNewCase()) {
                     setChosen(null);
@@ -486,6 +534,7 @@ export function LessonView({
               >
                 {busy ? "Preparing a new case…" : "Try another case"}
               </button>
+              )}
             </div>
             {error && <p className="mt-3 text-sm text-alert">{error}</p>}
           </>

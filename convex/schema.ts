@@ -9,6 +9,17 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_condition", ["condition"]),
 
+  // Lessons a learner asked for: any topic (from MedlinePlus) or a page they linked.
+  customLessons: defineTable({
+    topic: v.string(),
+    level: v.union(v.literal("everyday"), v.literal("med")),
+    link: v.optional(v.string()),
+    trusted: v.boolean(),
+    lesson: v.any(),
+    passages: v.any(),
+    createdAt: v.number(),
+  }),
+
   // Cached teacher audio (Cartesia TTS), keyed by a hash of model, voice and text.
   speech: defineTable({
     hash: v.string(),

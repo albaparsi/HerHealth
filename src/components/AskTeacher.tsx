@@ -3,6 +3,7 @@
 import { useAction } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type Recognition = {
   lang: string;
@@ -23,10 +24,12 @@ function createRecognition(): Recognition | null {
 /** Lets the learner ask the teacher a question by voice (or by typing); she answers aloud. */
 export default function AskTeacher({
   condition,
+  customId,
   lessonContext,
   onAnswer,
 }: {
-  condition: string;
+  condition?: string;
+  customId?: Id<"customLessons">;
   lessonContext?: string;
   onAnswer: (text: string) => void;
 }) {
@@ -50,7 +53,7 @@ export default function AskTeacher({
     setError(null);
     setResult(null);
     try {
-      const res = await ask({ condition, question: q, lessonContext });
+      const res = await ask({ condition, customId, question: q, lessonContext });
       setResult(res);
       onAnswer(res.answer);
     } catch {

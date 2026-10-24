@@ -11,6 +11,7 @@
   import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
   import type * as ask from "../ask.js";
 import type * as attempts from "../attempts.js";
+import type * as custom from "../custom.js";
 import type * as lessons from "../lessons.js";
 import type * as speech from "../speech.js";
 
@@ -25,6 +26,7 @@ import type * as speech from "../speech.js";
   declare const fullApi: ApiFromModules<{
     "ask": typeof ask,
 "attempts": typeof attempts,
+"custom": typeof custom,
 "lessons": typeof lessons,
 "speech": typeof speech,
   }>;

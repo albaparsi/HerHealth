@@ -34,6 +34,19 @@ export default function Home() {
         ))}
       </ul>
 
+      <Link
+        href="/make"
+        className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-6 transition hover:bg-accent-soft"
+      >
+        <span>
+          <span className="block font-serif text-2xl">Make a lesson on anything</span>
+          <span className="mt-1 block text-sm text-muted">
+            Type a health topic or paste a link to a page you&apos;re reading. Everyday or med student level.
+          </span>
+        </span>
+        <span className="text-sm font-semibold text-accent">Make a lesson →</span>
+      </Link>
+
       <p className="mt-12 border-t border-line pt-6 text-xs text-muted">
         Education, not medical advice. Sources: CDC, NIH, MedlinePlus, womenshealth.gov, ACOG.
         If you think you are having a heart attack, call 911.{" "}

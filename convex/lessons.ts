@@ -30,7 +30,7 @@ const BODY_REGIONS = [
   "whole_body",
 ] as const;
 
-const LessonSchema = z.object({
+export const LessonSchema = z.object({
   person: z.object({ name: z.string(), age: z.number().int() }),
   scenario: z.string().describe("3-4 sentence story about a named woman noticing symptoms"),
   question: z.string(),
@@ -54,7 +54,7 @@ const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)];
 
 export type Passage = { title: string; url: string; org: string; passage: string };
 
-const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
+export const LESSON_RULES = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
 
 Write one short lesson from the passages the user gives you. Rules:
 - Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly.
@@ -130,7 +130,7 @@ export const generateLesson = action({
       // On a safety decline, the API reruns the request on a fallback model.
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system: SYSTEM,
+      system: LESSON_RULES,
       messages: [
         {
           role: "user",
