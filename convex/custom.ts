@@ -82,13 +82,13 @@ class PageError extends Error {
 /** A page title without the site name, e.g. "Endometriosis - Wikipedia" becomes "Endometriosis". */
 const cleanTitle = (title: string) => title.split(/\s[|\-–—:]\s/)[0].trim().slice(0, 80);
 
-/** Words from a link's path, e.g. ".../women-and-heart-disease.html" becomes "women and heart disease". */
+/** Words from the last part of a link's path, e.g. ".../women-and-heart-disease.html" becomes "women and heart disease". */
 const slugWords = (url: URL) =>
   url.pathname
     .split("/")
     .filter(Boolean)
     .filter((part) => !/^(index|about|health|topics?|en)(\.\w+)?$/i.test(part))
-    .slice(-2)
+    .slice(-1)
     .join(" ")
     .replace(/\.\w+$/, "")
     .replace(/[-_]+/g, " ")
@@ -211,7 +211,7 @@ export const makeLesson = action({
       output_config: { effort: "medium", format: betaZodOutputFormat(CustomSchema) },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the material is not about health or medicine, set onTopic to false.`,
+      system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the requested topic or the material is not about health or medicine (for example a food, a place or a product on its own), set onTopic to false.`,
       messages: [{ role: "user", content: `Topic: ${name}\n\n${sources}\n\nWrite the lesson.` }],
     });
     if (response.stop_reason === "refusal") throw new Error("The teacher couldn't make a lesson from that.");

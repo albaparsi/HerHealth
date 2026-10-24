@@ -23,6 +23,19 @@ function Maker() {
   const [link, setLink] = useState(params.get("link") ?? "");
   const [level, setLevel] = useState<"everyday" | "med">(params.get("level") === "med" ? "med" : "everyday");
   const [busy, setBusy] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!busy) return;
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed((Date.now() - started) / 1000), 500);
+    return () => {
+      clearInterval(timer);
+      setElapsed(0);
+    };
+  }, [busy]);
+  // Rough stages of making a lesson (about 30 seconds in all).
+  const stage =
+    elapsed < 6 ? "Finding trusted sources…" : elapsed < 18 ? "Writing the case…" : "Fact-checking every claim against its source…";
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -103,9 +116,9 @@ function Maker() {
               disabled={busy || (!topic.trim() && !link.trim())}
               className="rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
             >
-              {busy ? "Your teacher is reading the sources…" : "Make the lesson →"}
+              {busy ? stage : "Make the lesson →"}
             </button>
-            {busy && <p className="mt-2 text-sm text-muted">This takes about 20 seconds.</p>}
+            {busy && <p className="mt-2 text-sm text-muted">This takes about 30 seconds.</p>}
             {error && <p className="mt-2 text-sm text-alert">{error}</p>}
           </div>
           <p className="text-xs text-muted">
