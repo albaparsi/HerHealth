@@ -267,7 +267,7 @@ export default function Avatar({
         <Model url={url} mouth={mouth} onLoaded={handleLoaded} />
       </Canvas>
       {loading && (
-        <div className="absolute inset-0 grid place-items-center text-sm text-white/60">
+        <div className="absolute inset-0 grid place-items-center text-sm text-muted">
           Loading your teacher…
         </div>
       )}

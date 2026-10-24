@@ -6,7 +6,7 @@ import { internal } from "./_generated/api";
 import { action, internalMutation, query } from "./_generated/server";
 
 const INDEX = "women-health-sources";
-const CONDITION_NAMES: Record<string, string> = {
+export const CONDITION_NAMES: Record<string, string> = {
   "heart-attack": "heart attack",
   endometriosis: "endometriosis",
   adhd: "ADHD",
@@ -42,7 +42,7 @@ const LessonSchema = z.object({
 });
 export type Lesson = z.infer<typeof LessonSchema>;
 
-type Passage = { title: string; url: string; org: string; passage: string };
+export type Passage = { title: string; url: string; org: string; passage: string };
 
 const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
 
@@ -55,7 +55,7 @@ Write one short lesson from the passages the user gives you. Rules:
 - The lesson is shown visually: symptoms appear as labeled points on a body diagram, and "expected" is contrasted with what she actually felt.
 - Tone: calm, clear and serious, like a good clinician teaching. No exclamation marks or cutesy language.`;
 
-async function searchElastic(condition: string, query: string): Promise<Passage[]> {
+export async function searchElastic(condition: string, query: string): Promise<Passage[]> {
   const url = process.env.ELASTIC_URL;
   const apiKey = process.env.ELASTIC_API_KEY;
   if (!url || !apiKey) throw new Error("Set ELASTIC_URL and ELASTIC_API_KEY in Convex env vars.");

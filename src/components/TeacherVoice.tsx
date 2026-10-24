@@ -127,17 +127,17 @@ export default function TeacherVoice({
   }, [playing, avatar]);
 
   return (
-    <div className="mt-3 flex items-center gap-3 text-xs text-white/60">
+    <div className="mt-3 flex items-center gap-3 text-xs text-muted">
       <button
         onClick={() => play(caption)}
-        className="rounded border border-white/20 px-2.5 py-1 text-white/80 hover:bg-white/10"
+        className="rounded border border-line bg-surface px-2.5 py-1 text-ink hover:border-accent"
       >
         {playing ? "Speaking…" : "▶ Listen"}
       </button>
       <button onClick={() => setOn((v) => !v)} className="underline-offset-2 hover:underline" aria-pressed={on}>
         Voice {on ? "on" : "off"}
       </button>
-      {error && <span className="text-red-300">{error}</span>}
+      {error && <span className="text-alert">{error}</span>}
     </div>
   );
 }

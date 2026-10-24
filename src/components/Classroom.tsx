@@ -11,6 +11,7 @@ import { convexEnabled } from "./ConvexClientProvider";
 import QuickCheck from "./QuickCheck";
 import { QUICK_CHECKS } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
+import AskTeacher from "./AskTeacher";
 
 const Avatar = dynamic(() => import("./Avatar"), { ssr: false });
 
@@ -39,19 +40,23 @@ export default function Classroom({ condition, title }: { condition: string; tit
 
   return (
     <div
-      className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
+      className="grid gap-6 pb-48 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:pb-0"
       onPointerDown={() => setInteracted(true)}
     >
       <aside className="lg:sticky lg:top-6 lg:self-start">
-        <div className="overflow-hidden rounded-lg bg-stage bg-[radial-gradient(ellipse_at_50%_35%,#3a4552_0%,#1c232c_70%)]">
-          <Avatar ref={avatar} className="aspect-[4/3] w-full lg:aspect-[4/5]" />
-          <div className="border-t border-white/10 px-5 py-4" aria-live="polite">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Your teacher</p>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-white/90">{caption}</p>
-            {convexEnabled && (
+        {/* No frame: she floats on the page like a presenter. On phones she sits in the corner while you scroll. */}
+        <div className="pointer-events-none fixed right-1 bottom-1 z-30 h-52 w-40 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:static lg:h-auto lg:w-full">
+          <Avatar ref={avatar} className="h-full w-full lg:aspect-[4/5] lg:h-auto" />
+        </div>
+        <div className="lg:-mt-6 lg:px-2" aria-live="polite">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Your teacher</p>
+          <p className="mt-1.5 font-serif text-lg leading-snug text-ink">{caption}</p>
+          {convexEnabled && (
+            <>
               <TeacherVoice caption={caption} prefetch={lines} avatar={avatar} interacted={interacted} />
-            )}
-          </div>
+              <AskTeacher condition={condition} lessonContext={lines.join(" ")} onAnswer={setCaption} />
+            </>
+          )}
         </div>
       </aside>
 
