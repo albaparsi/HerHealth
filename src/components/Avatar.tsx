@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { VRMLoaderPlugin, VRMUtils, type VRM } from "@pixiv/three-vrm";
 
 export type AvatarHandle = {
@@ -68,9 +69,21 @@ async function loadVRM(url: string): Promise<Rig> {
   };
 }
 
-/** Avaturn / Ready Player Me style glTF: Mixamo-like bone names and ARKit morph targets. */
+/** Rotates `bone` so the direction from it to `child` points along `dir` (world space). */
+function pointBone(bone: THREE.Object3D, child: THREE.Object3D, dir: THREE.Vector3) {
+  bone.parent?.updateMatrixWorld(true);
+  bone.updateMatrixWorld(true);
+  const from = child.getWorldPosition(new THREE.Vector3()).sub(bone.getWorldPosition(new THREE.Vector3())).normalize();
+  const delta = new THREE.Quaternion().setFromUnitVectors(from, dir.clone().normalize());
+  const world = delta.multiply(bone.getWorldQuaternion(new THREE.Quaternion()));
+  const parentWorld = bone.parent ? bone.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion();
+  bone.quaternion.copy(parentWorld.invert().multiply(world));
+  bone.updateMatrixWorld(true);
+}
+
+/** Avaturn / Ready Player Me / MPFB style glTF: Mixamo-like bone names and ARKit morph targets. */
 async function loadGLB(url: string): Promise<Rig> {
-  const gltf = await new GLTFLoader().loadAsync(url);
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url);
   const scene = gltf.scene;
   const bones: Record<string, THREE.Object3D> = {};
   const morphMeshes: THREE.Mesh[] = [];
@@ -87,11 +100,25 @@ async function loadGLB(url: string): Promise<Rig> {
     }
   };
 
-  // Arms down from T-pose. Rest rotations are kept so the idle motion is added on top.
+  // Plain, dark top: the stock outfit has a printed logo.
+  scene.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !/suit|shirt|top/i.test(mesh.name)) return;
+    const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+    mat.map = null;
+    mat.color.set("#3a4654");
+    mesh.material = mat;
+  });
+
+  // Arms down from T- or A-pose, whatever the rest pose is.
   const rest = (name: string) => bones[name]?.quaternion.clone();
-  const armL = bones.LeftArm, armR = bones.RightArm;
-  if (armL) armL.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), -1.2);
-  if (armR) armR.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), 1.2);
+  for (const side of ["Left", "Right"]) {
+    const upper = bones[`${side}Arm`], lower = bones[`${side}ForeArm`], hand = bones[`${side}Hand`];
+    if (!upper || !lower || !hand) continue;
+    const out = Math.sign(lower.getWorldPosition(new THREE.Vector3()).x) || 1;
+    pointBone(upper, lower, new THREE.Vector3(out * 0.2, -1, -0.05));
+    pointBone(lower, hand, new THREE.Vector3(out * 0.08, -1, 0.25));
+  }
   const spineRest = rest("Spine1") ?? rest("Spine");
   const neckRest = rest("Neck");
   scene.updateMatrixWorld(true);
@@ -166,8 +193,8 @@ function Model({
         if (cancelled) return r.dispose();
         loaded = r;
         // Frame from the chest up.
-        camera.position.set(0, r.headY, 1.3);
-        camera.lookAt(0, r.headY - 0.08, 0);
+        camera.position.set(0, r.headY, 1.45);
+        camera.lookAt(0, r.headY - 0.04, 0);
         r.lookAt(camera);
         setRig(r);
         onLoaded();
@@ -235,7 +262,8 @@ export default function Avatar({
       >
         <ambientLight intensity={0.55} />
         <directionalLight position={[1, 2, 2]} intensity={1.3} color="#fff1ea" />
-        <directionalLight position={[-1.5, 1, -1]} intensity={0.6} color="#f3c4d6" />
+        <directionalLight position={[-1.5, 1, -1]} intensity={0.5} color="#c9d6e3" />
+        <directionalLight position={[0, 1.5, 3]} intensity={0.6} />
         <Model url={url} mouth={mouth} onLoaded={handleLoaded} />
       </Canvas>
       {loading && (
