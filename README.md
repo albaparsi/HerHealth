@@ -17,7 +17,9 @@ Built solo at Cal Hacks 13.0. Education, not medical advice.
 - **A teacher that talks:** a 3D avatar with lip sync and a natural American voice from Cartesia.
   She starts speaking on her own and stops when you leave the page.
 - **Ask the teacher:** ask by mic or by typing. You get a short answer drawn only from the lesson's
-  sources.
+  sources. In the built-in lessons, the answer comes from an Elastic Agent Builder agent (the
+  "HerHealth tutor") that searches the trusted-source index with an ES|QL tool. If the agent is
+  unavailable, Claude answers instead.
 - **Make a lesson on anything:** type a topic or paste a link. Every lesson is framed around a woman
   and what the sources say about the topic in women (pregnancy, periods, menopause, differences in
   risk). If the sources describe no difference, the lesson says so.
@@ -44,7 +46,7 @@ Built solo at Cal Hacks 13.0. Education, not medical advice.
 ## Stack
 Next.js 16 + TypeScript + Tailwind · React Three Fiber (3D avatar, lip sync from Web Audio) ·
 Convex (backend, lesson cache, learner progress) · Elastic Serverless (semantic search over the
-indexed trusted sources) · MedlinePlus API · Claude API (lesson writing, fact review, Q&A) ·
+indexed trusted sources, Agent Builder tutor) · MedlinePlus API · Claude API (lesson writing, fact review, Q&A) ·
 Cartesia Sonic (voice) · Web Speech API (mic questions) · Chrome MV3 extension · Vercel
 
 ## Project layout
@@ -52,7 +54,7 @@ Cartesia Sonic (voice) · Web Speech API (mic questions) · Chrome MV3 extension
 - `src/components/Avatar.tsx`, `TeacherVoice.tsx`, `AskTeacher.tsx`: the teacher
 - `convex/lessons.ts`: built-in lessons from Elastic, the lesson rules, and the fact-check (`checkLesson`)
 - `convex/custom.ts`: Make a lesson, including the trusted-domain allowlist and MedlinePlus lookup
-- `convex/ask.ts`, `convex/speech.ts`: answers and voice
+- `convex/ask.ts`, `convex/agent.ts`, `convex/speech.ts`: answers (Agent Builder tutor, Claude fallback) and voice
 - `extension/`: the Chrome extension (zipped to `public/her-health-extension.zip`)
 
 ## Setup
@@ -82,6 +84,11 @@ such as TalkingHead's "mpfb.glb".
    npm run ingest            # add -- --reset to rebuild the index from scratch
    npm run search -- "heart attack symptoms women jaw" heart-attack
    ```
+4. Create the Agent Builder tutor and its search tool (`convex/agent.ts`, `scripts/agent.ts`):
+   ```bash
+   npm run agent -- "Can a heart attack feel like heartburn?"
+   ```
+   Kibana's URL is worked out from `ELASTIC_URL`, or you can set `KIBANA_URL`.
 
 ## Deploy
 1. Import the GitHub repo in Vercel (framework: Next.js).
