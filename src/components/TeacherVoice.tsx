@@ -144,5 +144,5 @@ export default function TeacherVoice({
 
 /** Spells out numbers that text-to-speech reads the wrong way, e.g. 911 as "nine hundred eleven". */
 function forSpeech(text: string) {
-  return text.replace(/\b911\b/g, "nine one one");
+  return text.replace(/\b9-?1-?1\b/g, "nine one one");
 }
