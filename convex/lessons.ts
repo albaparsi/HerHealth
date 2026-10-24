@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 import { internal } from "./_generated/api";
 import { action, internalMutation, query } from "./_generated/server";
@@ -201,7 +201,7 @@ export async function checkLesson(
       quote.length >= 20 && passages.some((p) => p.url === f.sourceUrl && normalize(p.passage).includes(quote))
     );
   });
-  if (lesson.facts.length === 0) throw new Error("None of the lesson's facts could be matched to its sources.");
+  if (lesson.facts.length === 0) throw new ConvexError("None of the lesson's facts could be matched to its sources.");
 
   const review = await client.beta.messages.parse({
     model: "claude-opus-5-5",
@@ -225,8 +225,8 @@ export async function checkLesson(
     ],
   });
   const verdict = review.parsed_output;
-  if (!verdict) throw new Error("The fact-check didn't finish. Please try again.");
-  if (!verdict.answerSupported) throw new Error("The fact-check couldn't confirm the answer from the sources.");
+  if (!verdict) throw new ConvexError("The fact-check didn't finish. Please try again.");
+  if (!verdict.answerSupported) throw new ConvexError("The fact-check couldn't confirm the answer from the sources.");
   for (const claim of verdict.unsupportedClaims) {
     lesson.explanation = lesson.explanation.replace(claim, "").replace(/\s{2,}/g, " ").trim();
     if (lesson.takeaway.includes(claim)) lesson.takeaway = "";

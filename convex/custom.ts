@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { z } from "zod";
 import { internal } from "./_generated/api";
-import { action, internalMutation, internalQuery, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, query, type ActionCtx } from "./_generated/server";
 import { checkLesson, LessonSchema, LESSON_RULES, type Passage } from "./lessons";
 
 // Sites whose pages count as reviewed medical sources. Lessons never teach from any other site.
@@ -44,14 +44,17 @@ function decode(s: string) {
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&");
 }
-const stripTags = (html: string) => decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+const stripTags = (html: string) =>
+  decode(html.replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** MedlinePlus health-topic summaries for a typed topic. */
 async function searchMedlinePlus(topic: string): Promise<Passage[]> {
   const res = await fetch(
     `https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&retmax=6&term=${encodeURIComponent(topic)}`,
   );
-  if (!res.ok) throw new Error(`MedlinePlus search failed: ${res.status}`);
+  if (!res.ok) throw new ConvexError(`MedlinePlus search failed: ${res.status}`);
   const xml = await res.text();
   return xml
     .split("<document ")
@@ -60,7 +63,12 @@ async function searchMedlinePlus(topic: string): Promise<Passage[]> {
       const url = doc.match(/url="([^"]+)"/)?.[1] ?? "https://medlineplus.gov";
       const field = (name: string) =>
         stripTags(decode(doc.match(new RegExp(`<content name="${name}">([\\s\\S]*?)</content>`))?.[1] ?? ""));
-      return { title: field("title"), url, org: "MedlinePlus", passage: field("FullSummary").slice(0, 3000) };
+      return {
+        title: field("title"),
+        url,
+        org: "MedlinePlus",
+        passage: field("FullSummary").slice(0, 3000),
+      };
     })
     .filter((p) => p.passage.length > 100);
 }
@@ -80,7 +88,18 @@ class PageError extends Error {
 }
 
 /** A page title without the site name, e.g. "Endometriosis - Wikipedia" becomes "Endometriosis". */
-const cleanTitle = (title: string) => title.split(/\s[|\-–—:]\s/)[0].trim().slice(0, 80);
+const cleanTitle = (title: string) =>
+  title
+    .split(/\s[|\-–—:]\s/)[0]
+    .trim()
+    .slice(0, 80);
+
+const STOP_WORDS =
+  /\b(what|is|are|the|a|an|of|in|on|for|and|to|your|you|how|why|when|signs?|symptoms?|causes?|treatments?|about|everything|need|know|guide|overview|should|can|may|could|every|things|\d+)\b/gi;
+
+/** The key words of a title, e.g. "10 signs of thyroid disease you should know" becomes "thyroid disease". */
+const shorten = (title: string) =>
+  title.replace(STOP_WORDS, " ").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ");
 
 /** Words from the last part of a link's path, e.g. ".../women-and-heart-disease.html" becomes "women and heart disease". */
 const slugWords = (url: URL) =>
@@ -100,9 +119,9 @@ async function readPage(link: string): Promise<{ passages: Passage[]; trusted: b
   try {
     url = new URL(link);
   } catch {
-    throw new Error("That doesn't look like a link.");
+    throw new ConvexError("That doesn't look like a link.");
   }
-  if (!/^https?:$/.test(url.protocol)) throw new Error("Only web links work here.");
+  if (!/^https?:$/.test(url.protocol)) throw new ConvexError("Only web links work here.");
   const res = await fetch(url, { headers: BROWSER_HEADERS });
   if (!res.ok) throw new PageError(res.status);
   const html = (await res.text()).slice(0, 1_500_000);
@@ -112,11 +131,16 @@ async function readPage(link: string): Promise<{ passages: Passage[]; trusted: b
     .replace(/<!--[\s\S]*?-->/g, " ");
   const main = body.match(/<(main|article)[\s\S]*?<\/\1>/i)?.[0] ?? body;
   const text = stripTags(main).slice(0, 12000);
-  if (text.length < 300) throw new Error("There wasn't enough readable text on that page.");
+  if (text.length < 300) throw new ConvexError("There wasn't enough readable text on that page.");
   const host = url.hostname.replace(/^www\./, "");
   const passages: Passage[] = [];
   for (let i = 0; i < text.length; i += 3000) {
-    passages.push({ title, url: url.toString(), org: host, passage: text.slice(i, i + 3000) });
+    passages.push({
+      title,
+      url: url.toString(),
+      org: host,
+      passage: text.slice(i, i + 3000),
+    });
   }
   return { passages, trusted: isTrusted(host), title };
 }
@@ -143,7 +167,15 @@ export const get = query({
   args: { id: v.id("customLessons") },
   handler: async (ctx, { id }) => {
     const row = await ctx.db.get(id);
-    return row && { topic: row.topic, level: row.level, link: row.link, note: row.note, lesson: row.lesson };
+    return (
+      row && {
+        topic: row.topic,
+        level: row.level,
+        link: row.link,
+        note: row.note,
+        lesson: row.lesson,
+      }
+    );
   },
 });
 
@@ -165,70 +197,106 @@ export const makeLesson = action({
     link: v.optional(v.string()),
     level: v.union(v.literal("everyday"), v.literal("med")),
   },
-  handler: async (ctx, { topic, link, level }): Promise<string> => {
-    const typed = topic?.trim().slice(0, 120);
-    let passages: Passage[] = [];
-    let name = typed ?? "";
-    let note: string | undefined;
-    if (link?.trim()) {
-      let url: URL;
-      try {
-        url = new URL(link.trim());
-      } catch {
-        throw new Error("That doesn't look like a link.");
-      }
-      const host = url.hostname.replace(/^www\./, "");
-      // Lessons only ever teach from reviewed medical sources. For any other page, the teacher works out
-      // its topic and teaches that topic from MedlinePlus instead, so nothing comes from the page itself.
-      const page = await readPage(url.toString()).catch(() => null);
-      if (page && isTrusted(host)) {
-        passages = page.passages;
-        name = typed || page.title;
-      } else {
-        name = typed || (page ? cleanTitle(page.title) : "") || slugWords(url);
-        passages = name ? await searchMedlinePlus(name) : [];
-        if (passages.length === 0)
-          throw new Error("I couldn't find this topic in my trusted sources, so I won't make a lesson from it.");
-        note = isTrusted(host)
-          ? `${host} couldn't be read, so this lesson teaches the same topic from MedlinePlus.`
-          : `${host} isn't one of our reviewed medical sources, so this lesson teaches the same topic from MedlinePlus instead.`;
-      }
-    } else if (typed) {
-      passages = await searchMedlinePlus(typed);
-      if (passages.length === 0) throw new Error(`MedlinePlus has nothing on "${typed}". Try another wording.`);
-    } else {
-      throw new Error("Type a topic or paste a link.");
+  handler: async (ctx, args): Promise<string> => {
+    // Production hides ordinary error messages, so learner-facing problems are ConvexErrors with readable text.
+    try {
+      return await make(ctx, args);
+    } catch (e) {
+      if (e instanceof ConvexError) throw e;
+      console.error("makeLesson failed", e);
+      throw new ConvexError("Something went wrong making that lesson. Please try again.");
     }
-
-    const sources = passages
-      .map((p, i) => `<passage index="${i + 1}" org="${p.org}" url="${p.url}" title="${p.title}">\n${p.passage}\n</passage>`)
-      .join("\n\n");
-
-    const client = new Anthropic();
-    const response = await client.beta.messages.parse({
-      model: "claude-opus-5-5",
-      max_tokens: 16000,
-      output_config: { effort: "medium", format: betaZodOutputFormat(CustomSchema) },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the requested topic or the material is not about health or medicine (for example a food, a place or a product on its own), set onTopic to false.`,
-      messages: [{ role: "user", content: `Topic: ${name}\n\n${sources}\n\nWrite the lesson.` }],
-    });
-    if (response.stop_reason === "refusal") throw new Error("The teacher couldn't make a lesson from that.");
-    const lesson = response.parsed_output;
-    if (!lesson) throw new Error("The lesson came out incomplete. Please try again.");
-    if (!lesson.onTopic) throw new Error("That doesn't look like health material, so there's no lesson to make.");
-
-    await checkLesson(client, lesson, passages, sources);
-
-    return await ctx.runMutation(internal.custom.save, {
-      topic: (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 160),
-      level,
-      link: link?.trim() || undefined,
-      trusted: true,
-      note,
-      lesson,
-      passages,
-    });
   },
 });
+
+async function make(
+  ctx: ActionCtx,
+  { topic, link, level }: { topic?: string; link?: string; level: "everyday" | "med" },
+): Promise<string> {
+  const typed = topic?.trim().slice(0, 120);
+  let passages: Passage[] = [];
+  let name = typed ?? "";
+  let note: string | undefined;
+  if (link?.trim()) {
+    let url: URL;
+    try {
+      url = new URL(link.trim());
+    } catch {
+      throw new ConvexError("That doesn't look like a link.");
+    }
+    const host = url.hostname.replace(/^www\./, "");
+    // Lessons only ever teach from reviewed medical sources. For any other page, the teacher works out
+    // its topic and teaches that topic from MedlinePlus instead, so nothing comes from the page itself.
+    const page = await readPage(url.toString()).catch(() => null);
+    if (page && isTrusted(host)) {
+      passages = page.passages;
+      name = typed || page.title;
+    } else {
+      // Try the most specific wording first, then looser ones, until MedlinePlus has a match.
+      const title = page ? cleanTitle(page.title) : "";
+      const candidates = [typed, title, slugWords(url), shorten(title), shorten(slugWords(url))].filter(
+        (c, i, all): c is string => !!c && all.indexOf(c) === i,
+      );
+      passages = [];
+      for (const candidate of candidates) {
+        passages = await searchMedlinePlus(candidate);
+        console.log(`makeLesson: MedlinePlus "${candidate}" -> ${passages.length} passages`);
+        if (passages.length > 0) {
+          name = candidate;
+          break;
+        }
+      }
+      if (passages.length === 0)
+        throw new ConvexError("I couldn't find this topic in my trusted sources, so I won't make a lesson from it.");
+      note = isTrusted(host)
+        ? `${host} couldn't be read, so this lesson teaches the same topic from MedlinePlus.`
+        : `${host} isn't one of our reviewed medical sources, so this lesson teaches the same topic from MedlinePlus instead.`;
+    }
+  } else if (typed) {
+    passages = await searchMedlinePlus(typed);
+    if (passages.length === 0) throw new ConvexError(`MedlinePlus has nothing on "${typed}". Try another wording.`);
+  } else {
+    throw new ConvexError("Type a topic or paste a link.");
+  }
+
+  const sources = passages
+    .map(
+      (p, i) => `<passage index="${i + 1}" org="${p.org}" url="${p.url}" title="${p.title}">\n${p.passage}\n</passage>`,
+    )
+    .join("\n\n");
+
+  const client = new Anthropic();
+  const response = await client.beta.messages.parse({
+    model: "claude-opus-5-5",
+    max_tokens: 16000,
+    output_config: {
+      effort: "medium",
+      format: betaZodOutputFormat(CustomSchema),
+    },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the requested topic or the material is not about health or medicine (for example a food, a place or a product on its own), set onTopic to false.`,
+    messages: [
+      {
+        role: "user",
+        content: `Topic: ${name}\n\n${sources}\n\nWrite the lesson.`,
+      },
+    ],
+  });
+  if (response.stop_reason === "refusal") throw new ConvexError("The teacher couldn't make a lesson from that.");
+  const lesson = response.parsed_output;
+  if (!lesson) throw new ConvexError("The lesson came out incomplete. Please try again.");
+  if (!lesson.onTopic) throw new ConvexError("That doesn't look like health material, so there's no lesson to make.");
+
+  await checkLesson(client, lesson, passages, sources);
+
+  return await ctx.runMutation(internal.custom.save, {
+    topic: (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 160),
+    level,
+    link: link?.trim() || undefined,
+    trusted: true,
+    note,
+    lesson,
+    passages,
+  });
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAction, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -45,7 +46,7 @@ function Maker() {
       const id = await make({ topic: topic || undefined, link: link || undefined, level });
       router.push(`/lesson/${id}`);
     } catch (e) {
-      setError((e as Error).message.replace(/^[\s\S]*Uncaught Error: /, "").split("\n")[0]);
+      setError(e instanceof ConvexError ? String(e.data) : "Something went wrong making that lesson. Please try again.");
       setBusy(false);
     }
   };
