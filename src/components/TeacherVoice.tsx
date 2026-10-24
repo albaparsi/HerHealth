@@ -7,18 +7,17 @@ import type { AvatarHandle } from "./Avatar";
 
 /**
  * Speaks the teacher's caption with Cartesia and drives the avatar's mouth from the audio level.
- * Browsers only allow audio after a user gesture, so nothing plays until the learner clicks something.
+ * She speaks on her own when the browser allows it (e.g. after clicking a lesson card). If the browser
+ * blocks audio, as on a direct page load, she starts on the learner's first tap.
  */
 export default function TeacherVoice({
   caption,
   prefetch,
   avatar,
-  interacted,
 }: {
   caption: string;
   prefetch: string[];
   avatar: RefObject<AvatarHandle | null>;
-  interacted: boolean;
 }) {
   const speak = useAction(api.speech.speak);
   const urls = useRef(new Map<string, Promise<string>>());
@@ -27,6 +26,8 @@ export default function TeacherVoice({
   const [on, setOn] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const latest = useRef(caption);
 
   const urlFor = useCallback(
     (text: string) => {
@@ -86,20 +87,31 @@ export default function TeacherVoice({
         const url = await urlFor(text);
         setError(null);
         const el = ensureAudio();
-        el.src = url;
+        if (el.src !== url) el.src = url;
         await el.play();
+        setBlocked(false);
       } catch (e) {
-        setError((e as Error).message.includes("play") ? null : "The voice is unavailable right now.");
+        if ((e as Error).name === "NotAllowedError") setBlocked(true);
+        else if ((e as Error).name !== "AbortError") setError("The voice is unavailable right now.");
       }
     },
     [urlFor],
   );
 
   useEffect(() => {
+    latest.current = caption;
     // Deferred so the effect itself never sets state.
-    if (on && interacted) queueMicrotask(() => play(caption));
+    if (on) queueMicrotask(() => play(caption));
     else audio.current?.pause();
-  }, [caption, on, interacted, play]);
+  }, [caption, on, play]);
+
+  // Audio was blocked: start speaking on the first tap anywhere.
+  useEffect(() => {
+    if (!blocked || !on) return;
+    const resume = () => play(latest.current);
+    window.addEventListener("pointerdown", resume, { once: true });
+    return () => window.removeEventListener("pointerdown", resume);
+  }, [blocked, on, play]);
 
   // Lip sync: RMS of the playing audio opens the mouth.
   useEffect(() => {
@@ -141,6 +153,7 @@ export default function TeacherVoice({
       <button onClick={() => setOn((v) => !v)} className="underline-offset-2 hover:underline" aria-pressed={on}>
         Voice {on ? "on" : "off"}
       </button>
+      {blocked && on && !playing && <span className="text-accent">Tap anywhere to hear your teacher.</span>}
       {error && <span className="text-alert">{error}</span>}
     </div>
   );

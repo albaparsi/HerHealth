@@ -36,34 +36,63 @@ export type Lesson = {
 
 export default function Classroom({ condition, title }: { condition: string; title: string }) {
   const avatar = useRef<AvatarHandle>(null);
-  const [caption, setCaption] = useState(`Welcome. Today's lesson: ${/^[A-Z]+$/.test(title) ? title : title.toLowerCase()} in women.`);
+  const info = getCondition(condition)!;
+  const topic = /^[A-Z]+$/.test(title) ? title : title.toLowerCase();
+  const [welcomed, setWelcomed] = useState(false);
+  const [caption, setCaption] = useState(
+    `Hi, I'm your teacher. Today we'll look at how ${topic} can show up in women. Press begin when you're ready.`,
+  );
   const [lines, setLines] = useState<string[]>([]);
-  const [interacted, setInteracted] = useState(false);
+  // Lines already shown on the card aren't repeated under the teacher.
+  const onCard = lines.includes(caption) || caption === info.intro.text;
 
   return (
     <div
-      className="grid gap-6 pb-32 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:pb-0"
-      onPointerDown={() => setInteracted(true)}
+      className={
+        welcomed
+          ? "grid gap-6 pb-32 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:pb-0"
+          : "mx-auto flex max-w-md flex-col items-center text-center"
+      }
     >
-      <aside className="lg:sticky lg:top-6 lg:self-start">
-        {/* No frame: she floats on the page like a presenter. On phones she sits in the corner while you scroll. */}
-        <div className="pointer-events-none fixed right-0 bottom-0 z-30 h-36 w-28 opacity-95 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:static lg:h-auto lg:w-full">
-          <Avatar ref={avatar} className="h-full w-full lg:aspect-[4/5] lg:h-auto" />
+      <aside className={welcomed ? "lg:sticky lg:top-6 lg:self-start" : "w-full"}>
+        {/* No frame: she floats on the page like a presenter. Once the lesson starts, on phones she sits in the corner. */}
+        <div
+          className={
+            welcomed
+              ? "pointer-events-none fixed right-0 bottom-0 z-30 h-36 w-28 opacity-95 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:static lg:h-auto lg:w-full"
+              : "mx-auto w-full max-w-sm [mask-image:linear-gradient(to_bottom,black_75%,transparent)]"
+          }
+        >
+          <Avatar ref={avatar} className={welcomed ? "h-full w-full lg:aspect-[4/5] lg:h-auto" : "aspect-[4/5] w-full"} />
         </div>
-        <div className="lg:-mt-6 lg:px-2" aria-live="polite">
+        <div className={welcomed ? "lg:-mt-6 lg:px-2" : "-mt-6"} aria-live="polite">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Your teacher</p>
-          {/* Lesson lines are already on the card, so only show what she says beyond it (welcome, answers). */}
-          {!lines.includes(caption) && <p className="mt-1.5 font-serif text-lg leading-snug text-ink">{caption}</p>}
+          {!onCard && (
+            <p className={`mt-1.5 font-serif leading-snug text-ink ${welcomed ? "text-lg" : "text-2xl"}`}>{caption}</p>
+          )}
+          {!welcomed && (
+            <button
+              onClick={() => {
+                setWelcomed(true);
+                setCaption(info.intro.text);
+              }}
+              className="mt-6 rounded-md bg-accent px-6 py-3 font-semibold text-white"
+            >
+              Begin the lesson →
+            </button>
+          )}
           {convexEnabled && (
-            <>
-              <TeacherVoice caption={caption} prefetch={lines} avatar={avatar} interacted={interacted} />
-              <AskTeacher condition={condition} lessonContext={lines.join(" ")} onAnswer={setCaption} />
-            </>
+            <div className={welcomed ? "" : "flex justify-center"}>
+              <TeacherVoice caption={caption} prefetch={lines} avatar={avatar} />
+            </div>
+          )}
+          {convexEnabled && welcomed && (
+            <AskTeacher condition={condition} lessonContext={lines.join(" ")} onAnswer={setCaption} />
           )}
         </div>
       </aside>
 
-      {convexEnabled ? (
+      {!welcomed ? null : convexEnabled ? (
         <Board condition={condition} onSay={setCaption} onLines={setLines} />
       ) : (
         <Panel>
@@ -132,7 +161,7 @@ function Board({
     return (
       <Panel>
         <p className="rise text-xs font-semibold uppercase tracking-[0.18em] text-muted" style={at(0)}>
-          Before we start
+          About this lesson
         </p>
         <h2 className="rise mt-1 font-serif text-3xl" style={at(0, 10)}>
           {info.name} in women
@@ -169,7 +198,7 @@ function Board({
           }}
           className="mt-8 rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-white"
         >
-          Start the lesson →
+          Continue →
         </button>
       </Panel>
     );
