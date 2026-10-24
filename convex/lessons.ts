@@ -1,0 +1,122 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { v } from "convex/values";
+import { z } from "zod";
+import { internal } from "./_generated/api";
+import { action, internalMutation, query } from "./_generated/server";
+
+const INDEX = "women-health-sources";
+const CONDITION_NAMES: Record<string, string> = {
+  "heart-attack": "heart attack",
+  endometriosis: "endometriosis",
+  adhd: "ADHD",
+};
+const BODY_REGIONS = ["chest", "jaw", "back", "left_arm", "stomach", "pelvis", "head"] as const;
+
+const LessonSchema = z.object({
+  scenario: z.string().describe("3-4 sentence story about a named woman noticing symptoms"),
+  question: z.string(),
+  options: z.array(z.string()).length(4),
+  correctIndex: z.number().int().min(0).max(3),
+  explanation: z.string().describe("Spoken aloud by the teacher: warm, plain words, under 120 words"),
+  bodyRegions: z.array(z.enum(BODY_REGIONS)),
+  facts: z
+    .array(z.object({ text: z.string(), sourceUrl: z.string(), sourceOrg: z.string() }))
+    .min(2),
+  urgent: z.boolean(),
+});
+export type Lesson = z.infer<typeof LessonSchema>;
+
+type Passage = { title: string; url: string; org: string; passage: string };
+
+const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
+
+Write one short lesson from the passages the user gives you. Rules:
+- Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly.
+- The scenario is about a named woman in everyday life whose symptoms are easy to dismiss. The question asks what the learner thinks is going on or what she should do; exactly one option is right and the others are common misconceptions.
+- Never diagnose the learner or tell her what she has. Encourage seeing a clinician.
+- If the condition can be an emergency (heart attack), set urgent to true and say in the explanation to call 911 right away.
+- bodyRegions lists only the regions the scenario's symptoms involve.`;
+
+async function searchElastic(condition: string, query: string): Promise<Passage[]> {
+  const url = process.env.ELASTIC_URL;
+  const apiKey = process.env.ELASTIC_API_KEY;
+  if (!url || !apiKey) throw new Error("Set ELASTIC_URL and ELASTIC_API_KEY in Convex env vars.");
+  const res = await fetch(`${url.replace(/\/$/, "")}/${INDEX}/_search`, {
+    method: "POST",
+    headers: { Authorization: `ApiKey ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      size: 6,
+      _source: ["title", "url", "org", "passage"],
+      query: {
+        bool: {
+          must: { semantic: { field: "passage", query } },
+          filter: { term: { condition } },
+        },
+      },
+    }),
+  });
+  if (!res.ok) throw new Error(`Elastic search failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  return data.hits.hits.map((h: { _source: Passage }) => h._source);
+}
+
+export const get = query({
+  args: { condition: v.string() },
+  handler: async (ctx, { condition }) => {
+    const row = await ctx.db
+      .query("lessons")
+      .withIndex("by_condition", (q) => q.eq("condition", condition))
+      .order("desc")
+      .first();
+    return row ? (row.lesson as Lesson) : null;
+  },
+});
+
+export const save = internalMutation({
+  args: { condition: v.string(), lesson: v.any() },
+  handler: async (ctx, { condition, lesson }) => {
+    await ctx.db.insert("lessons", { condition, lesson, createdAt: Date.now() });
+  },
+});
+
+/** Retrieves cited passages from Elastic, asks Claude for a lesson, validates and caches it. */
+export const generateLesson = action({
+  args: { condition: v.string() },
+  handler: async (ctx, { condition }): Promise<Lesson> => {
+    const name = CONDITION_NAMES[condition];
+    if (!name) throw new Error(`Unknown condition: ${condition}`);
+
+    const passages = await searchElastic(condition, `${name} symptoms in women that are often missed`);
+    if (passages.length === 0) throw new Error(`No passages indexed for ${condition}; run npm run ingest.`);
+
+    const sources = passages
+      .map((p, i) => `<passage index="${i + 1}" org="${p.org}" url="${p.url}" title="${p.title}">\n${p.passage}\n</passage>`)
+      .join("\n\n");
+
+    const client = new Anthropic();
+    const response = await client.beta.messages.parse({
+      model: "claude-opus-5-5",
+      max_tokens: 16000,
+      output_config: { effort: "medium", format: betaZodOutputFormat(LessonSchema) },
+      // On a safety decline, the API reruns the request on a fallback model.
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: SYSTEM,
+      messages: [
+        { role: "user", content: `Condition: ${name}\n\n${sources}\n\nWrite the lesson.` },
+      ],
+    });
+    if (response.stop_reason === "refusal") throw new Error("Claude declined to write this lesson.");
+    const lesson = response.parsed_output;
+    if (!lesson) throw new Error(`Lesson did not match the schema (stop_reason: ${response.stop_reason}).`);
+
+    // Keep only facts that cite a passage we actually retrieved.
+    const known = new Set(passages.map((p) => p.url));
+    lesson.facts = lesson.facts.filter((f) => known.has(f.sourceUrl));
+    if (lesson.facts.length === 0) throw new Error("Lesson had no facts citing retrieved sources.");
+
+    await ctx.runMutation(internal.lessons.save, { condition, lesson });
+    return lesson;
+  },
+});
