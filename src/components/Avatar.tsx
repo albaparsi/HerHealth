@@ -188,7 +188,9 @@ function Model({
   useEffect(() => {
     let cancelled = false;
     let loaded: Rig | null = null;
-    loadAvatar(url)
+    // Parsing the model briefly blocks the page, so let the lesson text paint first.
+    new Promise((r) => setTimeout(r, 400))
+      .then(() => (cancelled ? Promise.reject(new Error("cancelled")) : loadAvatar(url)))
       .then((r) => {
         if (cancelled) return r.dispose();
         loaded = r;
@@ -199,7 +201,7 @@ function Model({
         setRig(r);
         onLoaded();
       })
-      .catch((err) => console.error("Avatar failed to load", err));
+      .catch((err) => !cancelled && console.error("Avatar failed to load", err));
     return () => {
       cancelled = true;
       loaded?.dispose();

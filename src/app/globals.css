@@ -77,12 +77,11 @@ a.chip:hover {
   transform: translateZ(var(--z, 0px));
 }
 @keyframes rise {
+  /* No opacity fade: if the page is busy (e.g. loading the avatar), text must still be readable. */
   from {
-    opacity: 0;
     transform: translate3d(0, 22px, -80px) rotateX(12deg);
   }
   to {
-    opacity: 1;
     transform: translateZ(var(--z, 0px));
   }
 }
