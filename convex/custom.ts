@@ -97,6 +97,8 @@ const cleanTitle = (title: string) =>
 const STOP_WORDS =
   /\b(what|is|are|the|a|an|of|in|on|for|and|to|your|you|how|why|when|signs?|symptoms?|causes?|treatments?|about|everything|need|know|guide|overview|should|can|may|could|every|things|\d+)\b/gi;
 
+const normalizeWords = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
 /** The key words of a title, e.g. "10 signs of thyroid disease you should know" becomes "thyroid disease". */
 const shorten = (title: string) =>
   title.replace(STOP_WORDS, " ").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ");
@@ -105,9 +107,10 @@ const shorten = (title: string) =>
 const slugWords = (url: URL) =>
   url.pathname
     .split("/")
-    .map((part) => part.replace(/\.\w+$/, ""))
-    // Skip ids ("syc-20353439") and section names ("diseases-conditions", "symptoms-causes").
-    .filter((part) => part && !/\d/.test(part))
+    // Drop file extensions and trailing ids ("lupus-overview-4013911" becomes "lupus-overview").
+    .map((part) => part.replace(/\.\w+$/, "").replace(/[-_]?\d+$/, ""))
+    // Skip leftover codes ("syc") and section names ("diseases-conditions", "symptoms-causes").
+    .filter((part) => part.length >= 4 && !/\d/.test(part))
     .filter(
       (part) =>
         !/^(index|about|health|topics?|en|a-z-topics|diseases?-conditions|conditions?|diseases?|symptoms?-causes|symptoms?|causes?|diagnosis-treatment|treatment|overview|article|articles|news|blog)$/i.test(
@@ -240,17 +243,24 @@ async function make(
     } else {
       // Try the most specific wording first, then looser ones, until MedlinePlus has a match.
       const title = page ? cleanTitle(page.title) : "";
-      const candidates = [typed, title, slugWords(url), shorten(title), shorten(slugWords(url))].filter(
+      // The link's path is more reliable than the title, which may come from a "you look like a bot" page.
+      const slug = slugWords(url);
+      const candidates = [typed, slug, shorten(slug), title, shorten(title)].filter(
         (c, i, all): c is string => !!c && all.indexOf(c) === i,
       );
       passages = [];
       for (const candidate of candidates) {
         passages = await searchMedlinePlus(candidate);
-        console.log(`makeLesson: MedlinePlus "${candidate}" -> ${passages.length} passages`);
-        if (passages.length > 0) {
-          name = candidate;
+        // Only accept a match that actually mentions the topic, so a loose search can't swap in another subject.
+        const words = normalizeWords(candidate).filter((w) => w.length >= 4);
+        const top = passages[0] ? normalizeWords(`${passages[0].title} ${passages[0].passage}`) : [];
+        const relevant = words.length > 0 && words.some((w) => top.includes(w));
+        console.log(`makeLesson: MedlinePlus "${candidate}" -> ${passages.length} passages, relevant: ${relevant}`);
+        if (passages.length > 0 && relevant) {
+          name = passages[0].title || candidate;
           break;
         }
+        passages = [];
       }
       if (passages.length === 0)
         throw new ConvexError("I couldn't find this topic in my trusted sources, so I won't make a lesson from it.");
