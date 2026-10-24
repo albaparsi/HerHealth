@@ -301,7 +301,11 @@ export function LessonView({
             <div className="mt-3 [transform-style:preserve-3d]">
               <BodyMap symptoms={symptoms} />
             </div>
-            <Next onClick={() => goTo(1)}>What should {firstName} do?</Next>
+            {chosen === null ? (
+              <Next onClick={() => goTo(1)}>What should {firstName} do?</Next>
+            ) : (
+              <Next onClick={() => goTo(2)}>Back to what&apos;s happening</Next>
+            )}
           </>
         )}
 
