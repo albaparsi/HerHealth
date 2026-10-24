@@ -10,7 +10,7 @@ import type { AvatarHandle } from "./Avatar";
 import BodyMap, { type Region, type Symptom } from "./BodyMap";
 import { convexEnabled } from "./ConvexClientProvider";
 import QuickCheck from "./QuickCheck";
-import { QUICK_CHECKS, getCondition } from "@/lib/conditions";
+import { QUICK_CHECKS, getCondition, type CheckItem } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
 import Tilt from "./Tilt";
 import { at } from "@/lib/depth";
@@ -33,13 +33,15 @@ export type Lesson = {
   takeaway?: string;
   facts: { text: string; quote?: string; sourceUrl: string; sourceOrg: string }[];
   urgent: boolean;
+  /** Lessons a learner made carry their own quick check. */
+  quickCheck?: CheckItem[];
   /** Med student lessons only. */
   redFlags?: string[];
   differential?: string[];
 };
 
 /** A lesson the learner asked for, made from a typed topic or a linked page. */
-export type CustomLesson = { id: Id<"customLessons">; topic: string; lesson: Lesson };
+export type CustomLesson = { id: Id<"customLessons">; topic: string; lesson: Lesson; checks?: CheckItem[] };
 
 /** The teacher plus a lesson: one of the built-in conditions, or a made-to-order lesson. */
 export default function Classroom({
@@ -92,7 +94,13 @@ export default function Classroom({
             <button
               onClick={() => {
                 setWelcomed(true);
-                setCaption(custom ? custom.lesson.scenario : info!.intro.text);
+                setCaption(
+                  !custom
+                    ? info!.intro.text
+                    : custom.checks?.length
+                      ? "First, a few quick true or false questions. Answer what you think now. There is no penalty for being wrong."
+                      : custom.lesson.scenario,
+                );
               }}
               className="mt-6 rounded-md bg-accent px-6 py-3 font-semibold text-white"
             >
@@ -116,11 +124,7 @@ export default function Classroom({
       </aside>
 
       {!welcomed ? null : convexEnabled ? (
-        custom ? (
-          <LessonView lesson={custom.lesson} onSay={setCaption} onLines={setLines} busy={false} error={null} />
-        ) : (
-          <Board condition={condition!} onSay={setCaption} onLines={setLines} />
-        )
+        <Board condition={condition} custom={custom} onSay={setCaption} onLines={setLines} />
       ) : (
         <Panel>
           <p className="text-muted">Lessons are coming soon. The lesson service isn&apos;t connected yet.</p>
@@ -142,32 +146,42 @@ function Panel({ children }: { children: ReactNode }) {
   );
 }
 
+/** The lesson flow: about (built-in lessons only), quick check, the four steps, and the check again. */
 function Board({
   condition,
+  custom,
   onSay,
   onLines,
 }: {
-  condition: string;
+  condition?: string;
+  custom?: CustomLesson;
   onSay: (text: string) => void;
   onLines: (lines: string[]) => void;
 }) {
-  const lesson = useQuery(api.lessons.get, { condition }) as Lesson | null | undefined;
+  const stored = useQuery(api.lessons.get, custom ? "skip" : { condition: condition! }) as Lesson | null | undefined;
+  const lesson = custom ? custom.lesson : stored;
   const generate = useAction(api.lessons.generateLesson);
   const record = useMutation(api.attempts.record);
-  const checks = QUICK_CHECKS[condition];
-  const [phase, setPhase] = useState<"intro" | "before" | "lesson" | "after">("intro");
+  const checks = custom ? (custom.checks?.length ? custom.checks : undefined) : QUICK_CHECKS[condition!];
+  const [phase, setPhase] = useState<"intro" | "before" | "lesson" | "after">(
+    !custom ? "intro" : checks ? "before" : "lesson",
+  );
   const [beforeScore, setBeforeScore] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Impact scores are kept for the built-in lessons only.
   const save = (phase: "before" | "after", score: number) =>
+    !custom &&
+    condition &&
+    checks &&
     record({ learnerId: learnerId(), condition, phase, score, total: checks.length }).catch(() => {});
 
   const newCase = async () => {
     setBusy(true);
     setError(null);
     try {
-      await generate({ condition });
+      await generate({ condition: condition! });
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -178,7 +192,7 @@ function Board({
   };
 
   if (phase === "intro") {
-    const info = getCondition(condition)!;
+    const info = getCondition(condition!)!;
     const plan = [
       ...(checks ? ["Four quick true-or-false questions, so you can see what you learn."] : []),
       "A real-life case, and your call on what she should do.",
@@ -235,7 +249,7 @@ function Board({
     return (
       <Panel>
         <QuickCheck
-          items={checks}
+          items={checks!}
           phase="before"
           before={null}
           onSubmit={(score) => {
@@ -274,14 +288,14 @@ function Board({
       {phase === "after" && (
         <Panel>
           <QuickCheck
-            items={checks}
+            items={checks!}
             phase="after"
             before={beforeScore}
             onSubmit={(score) => {
               save("after", score);
               onSay(
                 beforeScore !== null && score > beforeScore
-                  ? `You went from ${beforeScore} to ${score} out of ${checks.length}. Well done.`
+                  ? `You went from ${beforeScore} to ${score} out of ${checks!.length}. Well done.`
                   : "Here are the answers, and where each one comes from.",
               );
             }}
@@ -295,7 +309,7 @@ function Board({
           lesson={lesson}
           onSay={onSay}
           onLines={onLines}
-          onNewCase={newCase}
+          onNewCase={custom ? undefined : newCase}
           onCheck={
             checks
               ? () => {

@@ -171,6 +171,9 @@ const ReviewSchema = z.object({
   unsupportedDifferential: z
     .array(z.string())
     .describe("Items from differential the passages don't support, copied exactly"),
+  wrongChecks: z
+    .array(z.string())
+    .describe("Statements from quickCheck whose true/false answer the passages don't support, copied exactly"),
 });
 
 const REVIEWER = `You are a medical fact-checker. You get source passages and a lesson written from them. Check the lesson only against the passages, not your own knowledge. Report anything the passages don't support. Be strict: a claim is supported only if a passage states it or plainly implies it.`;
@@ -191,16 +194,23 @@ export async function checkLesson(
     facts: { text: string; quote: string; sourceUrl: string }[];
     redFlags?: string[];
     differential?: string[];
+    quickCheck?: { statement: string; answer: boolean; quote: string; sourceUrl: string }[];
   },
   passages: Passage[],
   sources: string,
 ) {
-  lesson.facts = lesson.facts.filter((f) => {
-    const quote = normalize(f.quote);
+  const quoted = (item: { quote: string; sourceUrl: string }) => {
+    const quote = normalize(item.quote);
     return (
-      quote.length >= 20 && passages.some((p) => p.url === f.sourceUrl && normalize(p.passage).includes(quote))
+      quote.length >= 20 && passages.some((p) => p.url === item.sourceUrl && normalize(p.passage).includes(quote))
     );
-  });
+  };
+  lesson.facts = lesson.facts.filter(quoted);
+  // A quiz with fewer than three checked questions isn't worth showing.
+  if (lesson.quickCheck) {
+    lesson.quickCheck = lesson.quickCheck.filter(quoted);
+    if (lesson.quickCheck.length < 3) lesson.quickCheck = [];
+  }
   if (lesson.facts.length === 0) throw new ConvexError("None of the lesson's facts could be matched to its sources.");
 
   const review = await client.beta.messages.parse({
@@ -220,6 +230,7 @@ export async function checkLesson(
           takeaway: lesson.takeaway,
           redFlags: lesson.redFlags,
           differential: lesson.differential,
+          quickCheck: lesson.quickCheck?.map(({ statement, answer }) => ({ statement, answer })),
         })}\n</lesson>`,
       },
     ],
@@ -234,4 +245,8 @@ export async function checkLesson(
   const unsupported = new Set([...verdict.unsupportedRedFlags, ...verdict.unsupportedDifferential]);
   lesson.redFlags = lesson.redFlags?.filter((x) => !unsupported.has(x));
   lesson.differential = lesson.differential?.filter((x) => !unsupported.has(x));
+  if (lesson.quickCheck) {
+    lesson.quickCheck = lesson.quickCheck.filter((c) => !verdict.wrongChecks.includes(c.statement));
+    if (lesson.quickCheck.length < 3) lesson.quickCheck = [];
+  }
 }

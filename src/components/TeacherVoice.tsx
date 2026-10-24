@@ -23,6 +23,8 @@ export default function TeacherVoice({
   const urls = useRef(new Map<string, Promise<string>>());
   const audio = useRef<HTMLAudioElement | null>(null);
   const analyser = useRef<AnalyserNode | null>(null);
+  const context = useRef<AudioContext | null>(null);
+  const alive = useRef(true);
   const [on, setOn] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export default function TeacherVoice({
     el.crossOrigin = "anonymous";
     try {
       const ctx = new AudioContext();
+      context.current = ctx;
       const node = ctx.createAnalyser();
       node.fftSize = 1024;
       ctx.createMediaElementSource(el).connect(node);
@@ -85,6 +88,8 @@ export default function TeacherVoice({
     async (text: string) => {
       try {
         const url = await urlFor(text);
+        // The learner may have left the page while the audio was being made.
+        if (!alive.current) return;
         setError(null);
         const el = ensureAudio();
         if (el.src !== url) el.src = url;
@@ -104,6 +109,30 @@ export default function TeacherVoice({
     if (on) queueMicrotask(() => play(caption));
     else audio.current?.pause();
   }, [caption, on, play]);
+
+  // Stop talking when the learner leaves: navigating away, closing the tab, or switching to another tab.
+  useEffect(() => {
+    alive.current = true;
+    const stop = () => audio.current?.pause();
+    const onVisibility = () => document.hidden && stop();
+    window.addEventListener("pagehide", stop);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive.current = false;
+      window.removeEventListener("pagehide", stop);
+      document.removeEventListener("visibilitychange", onVisibility);
+      const el = audio.current;
+      if (el) {
+        el.pause();
+        el.removeAttribute("src");
+        el.load();
+      }
+      context.current?.close().catch(() => {});
+      audio.current = null;
+      analyser.current = null;
+      context.current = null;
+    };
+  }, []);
 
   // Audio was blocked: start speaking on the first tap anywhere.
   useEffect(() => {

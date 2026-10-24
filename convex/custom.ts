@@ -23,6 +23,19 @@ const TRUSTED = [
 const isTrusted = (host: string) => TRUSTED.some((d) => host === d || host.endsWith(`.${d}`));
 
 const CustomSchema = LessonSchema.extend({
+  quickCheck: z
+    .array(
+      z.object({
+        statement: z.string().describe("A true-or-false statement about the topic; about half should be false"),
+        answer: z.boolean(),
+        why: z.string().describe("One short sentence explaining the answer"),
+        quote: z.string().describe("One sentence copied word for word from the cited passage that settles it"),
+        sourceUrl: z.string(),
+        sourceOrg: z.string(),
+      }),
+    )
+    .length(4)
+    .describe("Asked before and after the lesson, so the learner can see what they learned"),
   onTopic: z.boolean().describe("False if the material is not about health or medicine"),
   redFlags: z.array(z.string()).describe("Med student level only: warning signs from the passages; otherwise empty"),
   differential: z

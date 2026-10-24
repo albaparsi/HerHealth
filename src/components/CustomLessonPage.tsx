@@ -27,7 +27,11 @@ function Loaded({ id }: { id: Id<"customLessons"> }) {
       </header>
       {row.note && <p className="-mt-3 mb-5 text-sm text-muted">{row.note}</p>}
       {(row.lesson as Lesson).urgent && <p className="mb-4 text-sm font-semibold text-alert">Emergency? Call 911.</p>}
-      <Classroom key={id} custom={{ id, topic: row.topic, lesson: row.lesson as Lesson }} title={row.topic} />
+      <Classroom
+        key={id}
+        custom={{ id, topic: row.topic, lesson: row.lesson as Lesson, checks: (row.lesson as Lesson).quickCheck }}
+        title={row.topic}
+      />
     </>
   );
 }
