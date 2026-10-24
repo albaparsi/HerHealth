@@ -143,9 +143,9 @@ async function loadGLB(url: string): Promise<Rig> {
       setMorph("eyeBlinkRight", v);
     },
     setMouth: (v) => {
-      setMorph("jawOpen", v * 0.5);
-      setMorph("mouthOpen", v * 0.6);
-      setMorph("viseme_aa", v);
+      setMorph("jawOpen", v * 0.2);
+      setMorph("mouthOpen", v * 0.25);
+      setMorph("viseme_aa", v * 0.45);
     },
     update: () => {},
     dispose: () =>
