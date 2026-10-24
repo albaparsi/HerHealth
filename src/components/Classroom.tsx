@@ -36,7 +36,7 @@ export type Lesson = {
 
 export default function Classroom({ condition, title }: { condition: string; title: string }) {
   const avatar = useRef<AvatarHandle>(null);
-  const [caption, setCaption] = useState(`Welcome. Today's lesson: ${title.toLowerCase()} in women.`);
+  const [caption, setCaption] = useState(`Welcome. Today's lesson: ${/^[A-Z]+$/.test(title) ? title : title.toLowerCase()} in women.`);
   const [lines, setLines] = useState<string[]>([]);
   const [interacted, setInteracted] = useState(false);
 
