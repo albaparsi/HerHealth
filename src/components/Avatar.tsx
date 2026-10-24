@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils, type VRM } from "@pixiv/three-vrm";
@@ -120,7 +120,7 @@ export default function Avatar({
 }) {
   const mouth = useRef(0);
   const [loading, setLoading] = useState(true);
-  const handleLoaded = useRef(() => setLoading(false)).current;
+  const handleLoaded = useCallback(() => setLoading(false), []);
 
   useImperativeHandle(ref, () => ({
     setMouthOpen: (v) => {
