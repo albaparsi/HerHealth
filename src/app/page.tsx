@@ -4,7 +4,7 @@ import { CONDITIONS } from "@/lib/conditions";
 export default function Home() {
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-12 sm:py-20">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Her Signs</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">HerHealth</p>
       <h1 className="mt-4 max-w-3xl font-serif text-4xl leading-tight sm:text-5xl">
         Many conditions show up differently in women. Learn the signs.
       </h1>

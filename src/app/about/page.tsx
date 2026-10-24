@@ -3,7 +3,7 @@ import Link from "next/link";
 import sources from "../../../data/sources.json";
 import { CONDITIONS } from "@/lib/conditions";
 
-export const metadata: Metadata = { title: "About · Her Signs" };
+export const metadata: Metadata = { title: "About · HerHealth" };
 
 // AHA pages block automated reading, so they are not in the search index and not cited.
 const indexed = sources.filter((s) => !/heart\.org|goredforwomen\.org/.test(s.url));
@@ -14,16 +14,16 @@ export default function AboutPage() {
       <Link href="/" className="text-sm text-muted hover:text-accent">
         ← All lessons
       </Link>
-      <h1 className="mt-3 font-serif text-4xl">About Her Signs</h1>
+      <h1 className="mt-3 font-serif text-4xl">About HerHealth</h1>
 
       <p role="note" className="mt-6 rounded-md border border-alert/40 bg-surface px-4 py-3 text-sm">
-        <strong className="text-alert">This is education, not medical advice.</strong> Her Signs cannot
+        <strong className="text-alert">This is education, not medical advice.</strong> HerHealth cannot
         diagnose you. If you think you are having a heart attack or another emergency, call 911 now.
       </p>
 
       <Section title="Why it exists">
         Many conditions show up differently in women than the textbook picture, and much of that
-        picture comes from research on men. Her Signs teaches the signs women actually report,
+        picture comes from research on men. HerHealth teaches the signs women actually report,
         through short cases with a teacher who talks you through them.
       </Section>
 

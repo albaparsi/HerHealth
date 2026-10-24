@@ -61,7 +61,7 @@ const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)];
 
 export type Passage = { title: string; url: string; org: string; passage: string };
 
-export const LESSON_RULES = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
+export const LESSON_RULES = `You are the teacher in HerHealth, an app that teaches women how health conditions can show up differently in women.
 
 Write one short lesson from the passages the user gives you. Rules:
 - Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly, and include a quote: one sentence copied word for word from that passage that supports the fact.

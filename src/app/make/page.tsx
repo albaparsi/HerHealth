@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import LessonMaker from "@/components/LessonMaker";
 
-export const metadata: Metadata = { title: "Make a lesson · Her Signs" };
+export const metadata: Metadata = { title: "Make a lesson · HerHealth" };
 
 export default function MakePage() {
   return (

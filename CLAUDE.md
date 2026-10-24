@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Her Signs
+# HerHealth
 
 Web app for Cal Hacks 13.0 (solo build, deadline Sunday 9 AM) that teaches women how
 conditions show up differently in women. A 3D avatar teacher speaks with Cartesia voice,

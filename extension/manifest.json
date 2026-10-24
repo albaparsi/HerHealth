@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Her Health: Teach me this",
+  "name": "HerHealth: Teach me this",
   "version": "1.0.0",
   "description": "Turn the page you're reading, or any health topic, into a short lesson with a 3D teacher, from reviewed medical sources.",
   "action": { "default_popup": "popup.html", "default_icon": { "16": "icon16.png", "32": "icon32.png", "48": "icon48.png" } },

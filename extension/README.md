@@ -1,6 +1,6 @@
-# Her Health: Teach me this (Chrome extension)
+# HerHealth: Teach me this (Chrome extension)
 
-Turns the page you're reading, a highlighted phrase, or any health topic into a Her Health lesson.
+Turns the page you're reading, a highlighted phrase, or any health topic into a HerHealth lesson.
 
 ## Install
 
@@ -10,7 +10,7 @@ Turns the page you're reading, a highlighted phrase, or any health topic into a 
 
 ## Use
 
-- Click the Her Health icon, pick Everyday or Med student, and press **Teach me this page**.
+- Click the HerHealth icon, pick Everyday or Med student, and press **Teach me this page**.
 - Or right-click a page ("Teach me this page") or highlighted text ("Teach me about …").
 
 Lessons only ever teach from reviewed medical sources. If the page isn't from one (NIH, CDC, MedlinePlus,

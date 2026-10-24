@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ImpactBoard from "@/components/ImpactBoard";
 
-export const metadata: Metadata = { title: "Impact · Her Signs" };
+export const metadata: Metadata = { title: "Impact · HerHealth" };
 
 export default function ImpactPage() {
   return (

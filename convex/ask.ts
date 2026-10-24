@@ -12,7 +12,7 @@ const AnswerSchema = z.object({
   emergency: z.boolean().describe("True if the learner describes symptoms happening to someone right now"),
 });
 
-const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women. A learner has asked you a question out loud, and your answer will be spoken in your voice.
+const SYSTEM = `You are the teacher in HerHealth, an app that teaches women how health conditions can show up differently in women. A learner has asked you a question out loud, and your answer will be spoken in your voice.
 
 Rules:
 - Answer only from the passages provided. If they don't cover the question, say you can only speak to what your sources cover, and suggest asking a clinician.

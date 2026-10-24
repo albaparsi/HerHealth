@@ -14,7 +14,7 @@ const serif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Her Signs",
+  title: "HerHealth",
   description:
     "Learn how heart attack, endometriosis and ADHD show up differently in women, taught by a 3D teacher with trusted sources.",
 };

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import CustomLessonPage from "@/components/CustomLessonPage";
 
-export const metadata: Metadata = { title: "Lesson · Her Signs" };
+export const metadata: Metadata = { title: "Lesson · HerHealth" };
 
 export default function LessonPage({ params }: PageProps<"/lesson/[id]">) {
   return (

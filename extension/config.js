@@ -1,7 +1,7 @@
-// Where Her Health is hosted.
+// Where HerHealth is hosted.
 export const APP = "https://her-health-wheat.vercel.app";
 
-/** Opens Her Health and starts making a lesson right away. */
+/** Opens HerHealth and starts making a lesson right away. */
 export function lessonUrl({ link, topic, level = "everyday" }) {
   const params = new URLSearchParams({ level, auto: "1" });
   if (link) params.set("link", link);

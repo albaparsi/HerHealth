@@ -1,17 +1,59 @@
-# Her Signs
+# HerHealth
 
-Learn how heart attack, endometriosis and ADHD show up differently in women. A 3D avatar
-teacher tells a real-life scenario, quizzes you, then explains what's happening in the body
-and cites a trusted source (AHA, CDC, NIH, MedlinePlus, womenshealth.gov, ACOG) for every fact.
+Many conditions show up differently in women, and those signs get missed. A heart attack can feel
+like jaw pain and nausea. Endometriosis can take years to diagnose. ADHD in women is often missed.
+HerHealth is a 3D teacher who talks you through a real-life case, quizzes you, and shows you what's
+happening in the body. Every fact links to a trusted medical source.
 
 Live: https://her-health-wheat.vercel.app
 
 Built solo at Cal Hacks 13.0. Education, not medical advice.
 
+## What it does
+- **Three guided lessons:** heart attack, endometriosis and ADHD. Each lesson starts with a welcome
+  from the teacher and a short intro, then a "Before we start" true/false check, a case with a
+  question, and an explanation on a body map. It ends with "Check what you learned" and the sources,
+  with the exact quote behind each fact.
+- **A teacher that talks:** a 3D avatar with lip sync and a natural American voice from Cartesia.
+  She starts speaking on her own and stops when you leave the page.
+- **Ask the teacher:** ask by mic or by typing. You get a short answer drawn only from the lesson's
+  sources.
+- **Make a lesson on anything:** type a topic or paste a link. Every lesson is framed around a woman
+  and what the sources say about the topic in women (pregnancy, periods, menopause, differences in
+  risk). If the sources describe no difference, the lesson says so.
+- **Med student mode:** a clinical vignette, a board-style question, red flags, and what else to
+  consider.
+- **Chrome extension:** "Teach me this page", or right-click a highlighted phrase to turn it into a
+  lesson. You can download it from the Make a lesson page.
+- **Impact page:** shows how much learners improve from the first check to the last.
+
+## How we keep it accurate
+1. **Trusted sources only.** Lessons are built from NIH, MedlinePlus, CDC, womenshealth.gov, ACOG,
+   WHO, FDA, Mayo Clinic, Cleveland Clinic and NHS. A link from any other site is never taught from.
+   The app works out its topic and teaches that topic from MedlinePlus instead, with a note that says so.
+2. **Grounded writing.** Claude may only use facts stated in the retrieved passages. Each fact must
+   cite its source and quote one sentence word for word.
+3. **Quote check.** Code checks that every quote really appears in its source. Facts and quiz items
+   whose quotes don't match are dropped.
+4. **Second reviewer.** A separate Claude call checks the answer, the facts, the quiz items, the red
+   flags and what else to consider against the sources. Anything unsupported is removed. If the
+   answer itself isn't supported, no lesson is made.
+5. **Safety.** The app never diagnoses. Urgent conditions show a "call 911" banner, and every page
+   says it is education rather than medical advice.
+
 ## Stack
-Next.js 16 + TypeScript + Tailwind · React Three Fiber + `@pixiv/three-vrm` (VRoid avatar) ·
-Convex · Elastic Serverless (semantic search, Agent Builder) · Claude API · Cartesia Sonic ·
-Vercel
+Next.js 16 + TypeScript + Tailwind · React Three Fiber (3D avatar, lip sync from Web Audio) ·
+Convex (backend, lesson cache, learner progress) · Elastic Serverless (semantic search over the
+indexed trusted sources) · MedlinePlus API · Claude API (lesson writing, fact review, Q&A) ·
+Cartesia Sonic (voice) · Web Speech API (mic questions) · Chrome MV3 extension · Vercel
+
+## Project layout
+- `src/components/Classroom.tsx`: the lesson flow (welcome, intro, checks, case, explanation)
+- `src/components/Avatar.tsx`, `TeacherVoice.tsx`, `AskTeacher.tsx`: the teacher
+- `convex/lessons.ts`: built-in lessons from Elastic, the lesson rules, and the fact-check (`checkLesson`)
+- `convex/custom.ts`: Make a lesson, including the trusted-domain allowlist and MedlinePlus lookup
+- `convex/ask.ts`, `convex/speech.ts`: answers and voice
+- `extension/`: the Chrome extension (zipped to `public/her-health-extension.zip`)
 
 ## Setup
 
@@ -49,6 +91,6 @@ such as TalkingHead's "mpfb.glb".
 4. Server-side keys (Anthropic, Cartesia, Elastic) go in Convex env vars:
    `npx convex env set --prod ANTHROPIC_API_KEY ...`
 
-## Safety
-The app never diagnoses. Urgent conditions show a "call 911" banner, every lesson says it is
-education rather than medical advice, and every fact links to its source.
+### Chrome extension
+Unzip `public/her-health-extension.zip`, open `chrome://extensions`, turn on Developer mode, and
+choose **Load unpacked**. To point it at your own deployment, edit `extension/config.js`.
