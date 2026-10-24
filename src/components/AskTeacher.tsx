@@ -134,7 +134,9 @@ export default function AskTeacher({
       {result && result.sources.length > 0 && (
         <p className="mt-2 text-xs text-muted">
           From:{" "}
-          {result.sources.map((s, i) => (
+          {result.sources
+            .filter((s, i, all) => all.findIndex((o) => o.org === s.org) === i)
+            .map((s, i) => (
             <span key={s.url}>
               {i > 0 && ", "}
               <a href={s.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
