@@ -21,5 +21,8 @@ export default defineSchema({
     condition: v.string(),
     preScore: v.optional(v.number()),
     postScore: v.optional(v.number()),
-  }).index("by_condition", ["condition"]),
+    total: v.optional(v.number()),
+  })
+    .index("by_condition", ["condition"])
+    .index("by_learner", ["learnerId", "condition"]),
 });

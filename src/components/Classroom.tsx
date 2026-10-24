@@ -1,12 +1,14 @@
 "use client";
 
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import type { AvatarHandle } from "./Avatar";
 import BodyMap, { type Region, type Symptom } from "./BodyMap";
 import { convexEnabled } from "./ConvexClientProvider";
+import QuickCheck from "./QuickCheck";
+import { QUICK_CHECKS } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
 
 const Avatar = dynamic(() => import("./Avatar"), { ssr: false });
@@ -85,8 +87,15 @@ function Board({
 }) {
   const lesson = useQuery(api.lessons.get, { condition }) as Lesson | null | undefined;
   const generate = useAction(api.lessons.generateLesson);
+  const record = useMutation(api.attempts.record);
+  const checks = QUICK_CHECKS[condition];
+  const [phase, setPhase] = useState<"before" | "lesson" | "after">(checks ? "before" : "lesson");
+  const [beforeScore, setBeforeScore] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const save = (phase: "before" | "after", score: number) =>
+    record({ learnerId: learnerId(), condition, phase, score, total: checks.length }).catch(() => {});
 
   const newCase = async () => {
     setBusy(true);
@@ -101,6 +110,25 @@ function Board({
       setBusy(false);
     }
   };
+
+  if (phase === "before") {
+    return (
+      <Panel>
+        <QuickCheck
+          items={checks}
+          phase="before"
+          before={null}
+          onSubmit={(score) => {
+            setBeforeScore(score);
+            save("before", score);
+            setPhase("lesson");
+            onSay(lesson ? lesson.scenario : "Thank you. Now let's look at a case.");
+          }}
+          onSkip={() => setPhase("lesson")}
+        />
+      </Panel>
+    );
+  }
 
   if (lesson === undefined) return <Panel><p className="text-muted">Loading the lesson…</p></Panel>;
 
@@ -121,7 +149,47 @@ function Board({
     );
   }
 
-  return <LessonView lesson={lesson} onSay={onSay} onLines={onLines} onNewCase={newCase} busy={busy} error={error} />;
+  return (
+    <>
+      {phase === "after" && (
+        <Panel>
+          <QuickCheck
+            items={checks}
+            phase="after"
+            before={beforeScore}
+            onSubmit={(score) => {
+              save("after", score);
+              onSay(
+                beforeScore !== null && score > beforeScore
+                  ? `You went from ${beforeScore} to ${score} out of ${checks.length}. Well done.`
+                  : "Here are the answers, and where each one comes from.",
+              );
+            }}
+            onDone={() => setPhase("lesson")}
+          />
+        </Panel>
+      )}
+      {/* Kept mounted while the check is open, so the learner returns to the same step. */}
+      <div className={phase === "after" ? "hidden" : undefined}>
+        <LessonView
+          lesson={lesson}
+          onSay={onSay}
+          onLines={onLines}
+          onNewCase={newCase}
+          onCheck={
+            checks
+              ? () => {
+                  setPhase("after");
+                  onSay("Let's see what you learned. Same questions as before.");
+                }
+              : undefined
+          }
+          busy={busy}
+          error={error}
+        />
+      </div>
+    </>
+  );
 }
 
 /** What the teacher says at each step. */
@@ -139,6 +207,7 @@ export function LessonView({
   onSay,
   onLines,
   onNewCase,
+  onCheck,
   busy,
   error,
 }: {
@@ -146,6 +215,7 @@ export function LessonView({
   onSay: (text: string) => void;
   onLines?: (lines: string[]) => void;
   onNewCase: () => Promise<boolean>;
+  onCheck?: () => void;
   busy: boolean;
   error: string | null;
 }) {
@@ -281,6 +351,11 @@ export function LessonView({
               ))}
             </ol>
             <div className="mt-8 flex flex-wrap gap-3">
+              {onCheck && (
+                <button onClick={onCheck} className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white">
+                  Check what you learned
+                </button>
+              )}
               <button onClick={() => goTo(0)} className="rounded-md border border-line px-4 py-2 text-sm">
                 Review the case
               </button>
@@ -314,4 +389,18 @@ function Next({ onClick, children }: { onClick: () => void; children: ReactNode 
       {children} →
     </button>
   );
+}
+
+/** Anonymous id kept in this browser, so before and after scores pair up. */
+function learnerId() {
+  try {
+    let id = localStorage.getItem("her-signs-learner");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("her-signs-learner", id);
+    }
+    return id;
+  } catch {
+    return "anonymous";
+  }
 }
