@@ -41,9 +41,19 @@ export default function TeacherVoice({
     [speak],
   );
 
-  // Warm the cache so each step's audio is ready when the learner gets there.
+  // Warm the cache one line at a time (Cartesia limits concurrent requests), so each step's
+  // audio is ready when the learner gets there.
   useEffect(() => {
-    for (const line of prefetch) urlFor(line).catch(() => {});
+    let cancelled = false;
+    (async () => {
+      for (const line of prefetch) {
+        if (cancelled) return;
+        await urlFor(line).catch(() => {});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [prefetch, urlFor]);
 
   const ensureAudio = () => {

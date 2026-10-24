@@ -61,17 +61,23 @@ export const speak = action({
     const hit = await ctx.runQuery(internal.speech.cached, { hash });
     if (hit) return hit;
 
-    const res = await fetch(`${CARTESIA_URL}/tts/bytes`, {
-      method: "POST",
-      headers: cartesiaHeaders(),
-      body: JSON.stringify({
-        model_id: MODEL,
-        transcript: text,
-        voice: { mode: "id", id: voice },
-        language: "en",
-        output_format: { container: "mp3", bit_rate: 128000, sample_rate: 44100 },
-      }),
-    });
+    // The plan allows only a couple of concurrent requests, so back off and retry on 429.
+    let res: Response;
+    for (let attempt = 0; ; attempt++) {
+      res = await fetch(`${CARTESIA_URL}/tts/bytes`, {
+        method: "POST",
+        headers: cartesiaHeaders(),
+        body: JSON.stringify({
+          model_id: MODEL,
+          transcript: text,
+          voice: { mode: "id", id: voice },
+          language: "en",
+          output_format: { container: "mp3", bit_rate: 128000, sample_rate: 44100 },
+        }),
+      });
+      if (res.status !== 429 || attempt >= 5) break;
+      await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+    }
     if (!res.ok) throw new Error(`Cartesia TTS failed: ${res.status} ${await res.text()}`);
 
     const storageId = await ctx.storage.store(new Blob([await res.arrayBuffer()], { type: "audio/mpeg" }));
