@@ -105,11 +105,17 @@ const shorten = (title: string) =>
 const slugWords = (url: URL) =>
   url.pathname
     .split("/")
-    .filter(Boolean)
-    .filter((part) => !/^(index|about|health|topics?|en)(\.\w+)?$/i.test(part))
+    .map((part) => part.replace(/\.\w+$/, ""))
+    // Skip ids ("syc-20353439") and section names ("diseases-conditions", "symptoms-causes").
+    .filter((part) => part && !/\d/.test(part))
+    .filter(
+      (part) =>
+        !/^(index|about|health|topics?|en|a-z-topics|diseases?-conditions|conditions?|diseases?|symptoms?-causes|symptoms?|causes?|diagnosis-treatment|treatment|overview|article|articles|news|blog)$/i.test(
+          part,
+        ),
+    )
     .slice(-1)
     .join(" ")
-    .replace(/\.\w+$/, "")
     .replace(/[-_]+/g, " ")
     .trim();
 
