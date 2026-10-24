@@ -37,7 +37,8 @@ export default function Home() {
       <p className="mt-12 border-t border-line pt-6 text-xs text-muted">
         Education, not medical advice. Sources: CDC, NIH, MedlinePlus, womenshealth.gov, ACOG.
         If you think you are having a heart attack, call 911.{" "}
-        <Link href="/impact" className="underline">See what learners gained.</Link>
+        <Link href="/about" className="underline">How this works</Link> ·{" "}
+        <Link href="/impact" className="underline">See what learners gained</Link>
         <span className="mt-2 block">
           Teacher avatar: &ldquo;brunette&rdquo; from{" "}
           <a href="https://github.com/met4citizen/TalkingHead" className="underline">TalkingHead</a>, made with Ready

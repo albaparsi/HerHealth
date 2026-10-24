@@ -2,6 +2,7 @@
 
 import { useAction, useMutation, useQuery } from "convex/react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import type { AvatarHandle } from "./Avatar";
@@ -70,7 +71,8 @@ function Panel({ children }: { children: ReactNode }) {
     <section className="rounded-lg border border-line bg-surface p-6 sm:p-8">
       {children}
       <p className="mt-8 border-t border-line pt-4 text-xs text-muted">
-        This is education, not medical advice. Only a clinician can tell you what is happening in your body.
+        This is education, not medical advice. Only a clinician can tell you what is happening in your body.{" "}
+        <Link href="/about" className="underline">How lessons are made</Link>
       </p>
     </section>
   );
