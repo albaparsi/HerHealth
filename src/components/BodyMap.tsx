@@ -4,6 +4,7 @@ export type Region =
   | "chest"
   | "left_arm"
   | "back"
+  | "lower_back"
   | "stomach"
   | "pelvis"
   | "whole_body";
@@ -17,6 +18,7 @@ const POINTS: Record<Exclude<Region, "whole_body">, [number, number]> = {
   chest: [92, 118],
   left_arm: [150, 165],
   back: [112, 100],
+  lower_back: [114, 196],
   stomach: [100, 172],
   pelvis: [100, 222],
 };
@@ -27,6 +29,7 @@ const REGION_NAMES: Record<Region, string> = {
   chest: "Chest",
   left_arm: "Left arm",
   back: "Upper back",
+  lower_back: "Lower back",
   stomach: "Stomach",
   pelvis: "Pelvis",
   whole_body: "Whole body",

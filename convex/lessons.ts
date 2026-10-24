@@ -17,6 +17,7 @@ const BODY_REGIONS = [
   "chest",
   "left_arm",
   "back",
+  "lower_back",
   "stomach",
   "pelvis",
   "whole_body",
@@ -48,10 +49,10 @@ const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how 
 
 Write one short lesson from the passages the user gives you. Rules:
 - Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly.
-- The scenario is about a named woman in everyday life whose symptoms are easy to dismiss. The question asks what the learner thinks is going on or what she should do; exactly one option is right and the others are common misconceptions.
+- The scenario is about a named woman in everyday life whose symptoms are easy to dismiss. The question asks what the learner thinks is going on or what she should do; exactly one option is right and the others are common misconceptions. All four options must be similar in length, detail and tone (one short sentence each), so the right one does not stand out by being longer or more specific.
 - Never diagnose the learner or tell her what she has. Encourage seeing a clinician.
 - If the condition can be an emergency (heart attack), set urgent to true and say in the explanation to call 911 right away.
-- bodyRegions lists only the regions the scenario's symptoms involve; use whole_body for things like fatigue or cold sweat.
+- bodyRegions lists only the regions the scenario's symptoms involve; use whole_body for things like fatigue or cold sweat. Use back for upper back or between the shoulder blades, and lower_back for the lower back.
 - The lesson is shown visually: symptoms appear as labeled points on a body diagram, and "expected" is contrasted with what she actually felt.
 - Tone: calm, clear and serious, like a good clinician teaching. No exclamation marks or cutesy language.`;
 
