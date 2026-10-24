@@ -4,10 +4,15 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { askAgent } from "./agent";
 import { CONDITION_NAMES, searchElastic, type Passage } from "./lessons";
 
 const AnswerSchema = z.object({
-  answer: z.string().describe("What the teacher says aloud: one or two short spoken sentences that directly answer the question, no lists or markdown"),
+  answer: z
+    .string()
+    .describe(
+      "What the teacher says aloud: one or two short spoken sentences that directly answer the question, no lists or markdown",
+    ),
   sources: z.array(z.number().int()).describe("Indexes of the passages the answer relies on"),
   emergency: z.boolean().describe("True if the learner describes symptoms happening to someone right now"),
 });
@@ -43,6 +48,11 @@ export const ask = action({
     } else {
       name = CONDITION_NAMES[condition ?? ""];
       if (!name) throw new Error(`Unknown condition: ${condition}`);
+      // The built-in lessons ask the Elastic Agent Builder tutor first, and fall back to Claude below.
+      const agent = await askAgent(
+        `[condition: ${condition}]\n${lessonContext ? `Case: ${lessonContext.slice(0, 1500)}\n` : ""}Question: ${q}`,
+      );
+      if (agent) return { answer: agent.answer, sources: agent.sources, emergency: /\b911\b/.test(agent.answer) };
       passages = await searchElastic(condition!, `${name} in women: ${q}`);
     }
     const sources = passages
