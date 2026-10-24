@@ -40,12 +40,12 @@ export default function Classroom({ condition, title }: { condition: string; tit
 
   return (
     <div
-      className="grid gap-6 pb-48 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:pb-0"
+      className="grid gap-6 pb-32 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:pb-0"
       onPointerDown={() => setInteracted(true)}
     >
       <aside className="lg:sticky lg:top-6 lg:self-start">
         {/* No frame: she floats on the page like a presenter. On phones she sits in the corner while you scroll. */}
-        <div className="pointer-events-none fixed right-1 bottom-1 z-30 h-52 w-40 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:static lg:h-auto lg:w-full">
+        <div className="pointer-events-none fixed right-0 bottom-0 z-30 h-36 w-28 opacity-95 [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:static lg:h-auto lg:w-full">
           <Avatar ref={avatar} className="h-full w-full lg:aspect-[4/5] lg:h-auto" />
         </div>
         <div className="lg:-mt-6 lg:px-2" aria-live="polite">

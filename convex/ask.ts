@@ -16,9 +16,9 @@ const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how 
 Rules:
 - Answer only from the passages provided. If they don't cover the question, say you can only speak to what your sources cover, and suggest asking a clinician.
 - Never diagnose the learner or anyone else, and never say what someone "has". You teach warning signs; a clinician decides what is happening.
-- If the learner describes symptoms happening now that could be a heart attack or another emergency, set emergency to true and start the answer by telling her to call nine one one right away.
+- If the learner describes symptoms happening now that could be a heart attack or another emergency, set emergency to true and start the answer by telling her to call 911 right away.
 - If the question is off topic, gently steer back to the lesson.
-- Speak plainly and calmly, like a good clinician teaching. Two to four short sentences. Write numbers as they should be spoken, and write 911 as "nine one one".`;
+- Speak plainly and calmly, like a good clinician teaching. Two to four short sentences. Write 911 as "911".`;
 
 /** Answers a learner's spoken question from the trusted passages in Elastic. */
 export const ask = action({
@@ -52,7 +52,7 @@ export const ask = action({
     const out = response.parsed_output;
     if (response.stop_reason === "refusal" || !out) {
       return {
-        answer: "I can't answer that one. Please ask a clinician, and if this is an emergency, call nine one one.",
+        answer: "I can't answer that one. Please ask a clinician, and if this is an emergency, call 911.",
         sources: [],
         emergency: false,
       };
