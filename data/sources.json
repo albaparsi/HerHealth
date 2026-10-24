@@ -1,0 +1,21 @@
+[
+  { "condition": "heart-attack", "org": "AHA", "title": "Heart Attack Symptoms in Women", "url": "https://www.heart.org/en/health-topics/heart-attack/warning-signs-of-a-heart-attack/heart-attack-symptoms-in-women" },
+  { "condition": "heart-attack", "org": "AHA Go Red for Women", "title": "Signs and Symptoms in Women", "url": "https://www.goredforwomen.org/en/about-heart-disease-in-women/signs-and-symptoms-in-women" },
+  { "condition": "heart-attack", "org": "womenshealth.gov", "title": "Heart attack and women", "url": "https://www.womenshealth.gov/heart-disease-and-stroke/heart-disease/heart-attack-and-women" },
+  { "condition": "heart-attack", "org": "CDC", "title": "Women and Heart Disease", "url": "https://www.cdc.gov/heart-disease/about/women-and-heart-disease.html" },
+  { "condition": "heart-attack", "org": "CDC", "title": "About Heart Attack Symptoms, Risk, and Recovery", "url": "https://www.cdc.gov/heart-disease/about/heart-attack.html" },
+  { "condition": "heart-attack", "org": "NIH NHLBI", "title": "Heart Attack: Symptoms", "url": "https://www.nhlbi.nih.gov/health/heart-attack/symptoms" },
+  { "condition": "heart-attack", "org": "MedlinePlus", "title": "Heart Attack", "url": "https://medlineplus.gov/heartattack.html" },
+
+  { "condition": "endometriosis", "org": "womenshealth.gov", "title": "Endometriosis", "url": "https://www.womenshealth.gov/a-z-topics/endometriosis" },
+  { "condition": "endometriosis", "org": "ACOG", "title": "Endometriosis FAQ", "url": "https://www.acog.org/womens-health/faqs/endometriosis" },
+  { "condition": "endometriosis", "org": "NIH NICHD", "title": "What are the symptoms of endometriosis?", "url": "https://www.nichd.nih.gov/health/topics/endometri/conditioninfo/symptoms" },
+  { "condition": "endometriosis", "org": "NIH NICHD", "title": "How do health care providers diagnose endometriosis?", "url": "https://www.nichd.nih.gov/health/topics/endometri/conditioninfo/diagnose" },
+  { "condition": "endometriosis", "org": "MedlinePlus", "title": "Endometriosis", "url": "https://medlineplus.gov/endometriosis.html" },
+
+  { "condition": "adhd", "org": "CDC", "title": "Symptoms of ADHD", "url": "https://www.cdc.gov/adhd/signs-symptoms/index.html" },
+  { "condition": "adhd", "org": "NIH NIMH", "title": "Attention-Deficit/Hyperactivity Disorder", "url": "https://www.nimh.nih.gov/health/topics/attention-deficit-hyperactivity-disorder-adhd" },
+  { "condition": "adhd", "org": "NIH NIMH", "title": "ADHD in Adults: 4 Things to Know", "url": "https://www.nimh.nih.gov/health/publications/adult-adhd" },
+  { "condition": "adhd", "org": "MedlinePlus", "title": "Attention Deficit Hyperactivity Disorder", "url": "https://medlineplus.gov/attentiondeficithyperactivitydisorder.html" },
+  { "condition": "adhd", "org": "CDC", "title": "Treatment of ADHD in adults", "url": "https://www.cdc.gov/adhd/treatment/adults.html" }
+]

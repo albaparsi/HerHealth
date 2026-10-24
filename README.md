@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Her Signs
 
-## Getting Started
+Learn how heart attack, endometriosis and ADHD show up differently in women. A 3D avatar
+teacher tells a real-life scenario, quizzes you, then explains what's happening in the body
+and cites a trusted source (AHA, CDC, NIH, MedlinePlus, womenshealth.gov, ACOG) for every fact.
 
-First, run the development server:
+Built solo at Cal Hacks 13.0. Education, not medical advice.
+
+## Stack
+Next.js 16 + TypeScript + Tailwind · React Three Fiber + `@pixiv/three-vrm` (VRoid avatar) ·
+Convex · Elastic Serverless (semantic search, Agent Builder) · Claude API · Cartesia Sonic ·
+Vercel
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local      # fill in keys; never commit this file
+npx convex dev                  # logs in, creates a dev deployment, writes Convex vars to .env.local
+npm run dev                     # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Avatar
+Export a female avatar from VRoid Studio (File → Export → VRM) and save it as
+`public/avatar.vrm`. Until then the app loads a sample model from the three-vrm repo.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Trusted sources into Elastic
+1. Create an Elastic Cloud **Serverless** project (Elasticsearch, general purpose).
+2. Copy the Elasticsearch endpoint and create an API key; put them in `.env.local` as
+   `ELASTIC_URL` and `ELASTIC_API_KEY`.
+3. Index the pages listed in `data/sources.json`:
+   ```bash
+   npm run ingest            # add -- --reset to rebuild the index from scratch
+   npm run search -- "heart attack symptoms women jaw" heart-attack
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy
+1. Import the GitHub repo in Vercel (framework: Next.js).
+2. In Convex dashboard → production → Settings, create a **Deploy Key**; add it to Vercel as
+   `CONVEX_DEPLOY_KEY`.
+3. Set the Vercel build command to `npx convex deploy --cmd 'npm run build'`.
+4. Server-side keys (Anthropic, Cartesia, Elastic) go in Convex env vars:
+   `npx convex env set --prod ANTHROPIC_API_KEY ...`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Safety
+The app never diagnoses. Urgent conditions show a "call 911" banner, every lesson says it is
+education rather than medical advice, and every fact links to its source.
