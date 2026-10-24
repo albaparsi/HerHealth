@@ -70,7 +70,13 @@ async function main() {
   for (const src of sources) {
     try {
       const res = await fetch(src.url, {
-        headers: { "User-Agent": "Mozilla/5.0 (HerSigns educational app; Cal Hacks)" },
+        // Browser-like headers: some sources (heart.org) reject non-browser user agents.
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
         redirect: "follow",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

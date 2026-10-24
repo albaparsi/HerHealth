@@ -15,7 +15,7 @@
 
   { "condition": "adhd", "org": "CDC", "title": "Symptoms of ADHD", "url": "https://www.cdc.gov/adhd/signs-symptoms/index.html" },
   { "condition": "adhd", "org": "NIH NIMH", "title": "Attention-Deficit/Hyperactivity Disorder", "url": "https://www.nimh.nih.gov/health/topics/attention-deficit-hyperactivity-disorder-adhd" },
-  { "condition": "adhd", "org": "NIH NIMH", "title": "ADHD in Adults: 4 Things to Know", "url": "https://www.nimh.nih.gov/health/publications/adult-adhd" },
+  { "condition": "adhd", "org": "NIH NIMH", "title": "ADHD in Adults: What You Need to Know", "url": "https://www.nimh.nih.gov/health/publications/adhd-what-you-need-to-know" },
   { "condition": "adhd", "org": "MedlinePlus", "title": "Attention Deficit Hyperactivity Disorder", "url": "https://medlineplus.gov/attentiondeficithyperactivitydisorder.html" },
-  { "condition": "adhd", "org": "CDC", "title": "Treatment of ADHD in adults", "url": "https://www.cdc.gov/adhd/treatment/adults.html" }
+  { "condition": "adhd", "org": "CDC", "title": "Treatment of ADHD", "url": "https://www.cdc.gov/adhd/treatment/index.html" }
 ]
