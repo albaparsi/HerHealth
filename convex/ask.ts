@@ -6,7 +6,7 @@ import { action } from "./_generated/server";
 import { CONDITION_NAMES, searchElastic } from "./lessons";
 
 const AnswerSchema = z.object({
-  answer: z.string().describe("What the teacher says aloud: two to four short spoken sentences, no lists or markdown"),
+  answer: z.string().describe("What the teacher says aloud: one or two short spoken sentences that directly answer the question, no lists or markdown"),
   sources: z.array(z.number().int()).describe("Indexes of the passages the answer relies on"),
   emergency: z.boolean().describe("True if the learner describes symptoms happening to someone right now"),
 });
@@ -16,9 +16,10 @@ const SYSTEM = `You are the teacher in Her Signs, an app that teaches women how 
 Rules:
 - Answer only from the passages provided. If they don't cover the question, say you can only speak to what your sources cover, and suggest asking a clinician.
 - Never diagnose the learner or anyone else, and never say what someone "has". You teach warning signs; a clinician decides what is happening.
-- If the learner describes symptoms happening now that could be a heart attack or another emergency, set emergency to true and start the answer by telling her to call 911 right away.
-- If the question is off topic, gently steer back to the lesson.
-- Speak plainly and calmly, like a good clinician teaching. Two to four short sentences. Write 911 as "911".`;
+- If the learner describes symptoms happening now that could be a heart attack or another emergency, set emergency to true and start the answer by telling her to call 911 right away. This is the one case where you may add a sentence.
+- If the question is off topic, say in one sentence that you can only help with this lesson.
+- Answer the question directly and stop. One or two short sentences. No greeting, no restating the question, no extra tips, and no reminder to see a clinician unless the question is about what to do.
+- Speak plainly and calmly. Write 911 as "911".`;
 
 /** Answers a learner's spoken question from the trusted passages in Elastic. */
 export const ask = action({
@@ -37,7 +38,7 @@ export const ask = action({
     const client = new Anthropic();
     const response = await client.beta.messages.parse({
       model: "claude-opus-5-5",
-      max_tokens: 4000,
+      max_tokens: 2000,
       output_config: { effort: "low", format: betaZodOutputFormat(AnswerSchema) },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
