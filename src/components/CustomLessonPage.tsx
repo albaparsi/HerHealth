@@ -22,15 +22,10 @@ function Loaded({ id }: { id: Id<"customLessons"> }) {
         <h1 className="font-serif text-3xl sm:text-4xl">{row.topic}</h1>
         <div className="flex flex-wrap gap-2 text-xs">
           {row.level === "med" && <span className="rounded-full bg-accent px-3 py-1 font-semibold text-white">Med student</span>}
-          {row.trusted ? (
-            <span className="rounded-full bg-accent-soft px-3 py-1 text-accent">Reviewed medical source</span>
-          ) : (
-            <span className="rounded-full border border-alert/40 px-3 py-1 text-alert">
-              From a page you chose, not a reviewed medical source
-            </span>
-          )}
+          <span className="rounded-full bg-accent-soft px-3 py-1 text-accent">Reviewed medical sources, fact-checked</span>
         </div>
       </header>
+      {row.note && <p className="-mt-3 mb-5 text-sm text-muted">{row.note}</p>}
       {(row.lesson as Lesson).urgent && <p className="mb-4 text-sm font-semibold text-alert">Emergency? Call 911.</p>}
       <Classroom key={id} custom={{ id, topic: row.topic, lesson: row.lesson as Lesson }} title={row.topic} />
     </>

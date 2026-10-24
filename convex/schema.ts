@@ -15,6 +15,8 @@ export default defineSchema({
     level: v.union(v.literal("everyday"), v.literal("med")),
     link: v.optional(v.string()),
     trusted: v.boolean(),
+    // Why the lesson used other sources than the linked page, e.g. the site isn't a reviewed source.
+    note: v.optional(v.string()),
     lesson: v.any(),
     passages: v.any(),
     createdAt: v.number(),

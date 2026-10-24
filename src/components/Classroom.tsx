@@ -31,7 +31,7 @@ export type Lesson = {
   symptoms?: Symptom[];
   expected?: string;
   takeaway?: string;
-  facts: { text: string; sourceUrl: string; sourceOrg: string }[];
+  facts: { text: string; quote?: string; sourceUrl: string; sourceOrg: string }[];
   urgent: boolean;
   /** Med student lessons only. */
   redFlags?: string[];
@@ -318,7 +318,7 @@ function scriptFor(lesson: Lesson) {
     lesson.scenario,
     lesson.question,
     lesson.explanation,
-    lesson.takeaway ?? "Here is where every fact in this lesson comes from.",
+    lesson.takeaway || "Here is where every fact in this lesson comes from.",
   ];
 }
 
@@ -508,6 +508,11 @@ export function LessonView({
                     <a href={f.sourceUrl} target="_blank" rel="noreferrer" className="font-medium text-accent underline underline-offset-2">
                       {f.sourceOrg}
                     </a>
+                    {f.quote && (
+                      <span className="mt-1.5 block border-l-2 border-line pl-3 text-xs italic text-muted">
+                        &ldquo;{f.quote}&rdquo;
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

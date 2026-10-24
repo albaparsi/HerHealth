@@ -4,9 +4,9 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { internal } from "./_generated/api";
 import { action, internalMutation, internalQuery, query } from "./_generated/server";
-import { LessonSchema, LESSON_RULES, type Passage } from "./lessons";
+import { checkLesson, LessonSchema, LESSON_RULES, type Passage } from "./lessons";
 
-// Sites whose pages count as reviewed medical sources. Anything else is labeled as unreviewed.
+// Sites whose pages count as reviewed medical sources. Lessons never teach from any other site.
 const TRUSTED = [
   "nih.gov",
   "cdc.gov",
@@ -49,7 +49,7 @@ const stripTags = (html: string) => decode(html.replace(/<[^>]+>/g, " ")).replac
 /** MedlinePlus health-topic summaries for a typed topic. */
 async function searchMedlinePlus(topic: string): Promise<Passage[]> {
   const res = await fetch(
-    `https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&retmax=4&term=${encodeURIComponent(topic)}`,
+    `https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&retmax=6&term=${encodeURIComponent(topic)}`,
   );
   if (!res.ok) throw new Error(`MedlinePlus search failed: ${res.status}`);
   const xml = await res.text();
@@ -65,6 +65,35 @@ async function searchMedlinePlus(topic: string): Promise<Passage[]> {
     .filter((p) => p.passage.length > 100);
 }
 
+// Some sites refuse requests that don't look like a browser.
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
+class PageError extends Error {
+  constructor(public status: number) {
+    super(`That page couldn't be opened (${status}).`);
+  }
+}
+
+/** A page title without the site name, e.g. "Endometriosis - Wikipedia" becomes "Endometriosis". */
+const cleanTitle = (title: string) => title.split(/\s[|\-–—:]\s/)[0].trim().slice(0, 80);
+
+/** Words from a link's path, e.g. ".../women-and-heart-disease.html" becomes "women and heart disease". */
+const slugWords = (url: URL) =>
+  url.pathname
+    .split("/")
+    .filter(Boolean)
+    .filter((part) => !/^(index|about|health|topics?|en)(\.\w+)?$/i.test(part))
+    .slice(-2)
+    .join(" ")
+    .replace(/\.\w+$/, "")
+    .replace(/[-_]+/g, " ")
+    .trim();
+
 /** Readable text from a web page, split into a few passages. */
 async function readPage(link: string): Promise<{ passages: Passage[]; trusted: boolean; title: string }> {
   let url: URL;
@@ -74,8 +103,8 @@ async function readPage(link: string): Promise<{ passages: Passage[]; trusted: b
     throw new Error("That doesn't look like a link.");
   }
   if (!/^https?:$/.test(url.protocol)) throw new Error("Only web links work here.");
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (HerSigns lesson maker)" } });
-  if (!res.ok) throw new Error(`That page couldn't be opened (${res.status}).`);
+  const res = await fetch(url, { headers: BROWSER_HEADERS });
+  if (!res.ok) throw new PageError(res.status);
   const html = (await res.text()).slice(0, 1_500_000);
   const title = stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? url.hostname);
   const body = html
@@ -98,6 +127,7 @@ export const save = internalMutation({
     level: v.union(v.literal("everyday"), v.literal("med")),
     link: v.optional(v.string()),
     trusted: v.boolean(),
+    note: v.optional(v.string()),
     lesson: v.any(),
     passages: v.any(),
   },
@@ -113,7 +143,7 @@ export const get = query({
   args: { id: v.id("customLessons") },
   handler: async (ctx, { id }) => {
     const row = await ctx.db.get(id);
-    return row && { topic: row.topic, level: row.level, link: row.link, trusted: row.trusted, lesson: row.lesson };
+    return row && { topic: row.topic, level: row.level, link: row.link, note: row.note, lesson: row.lesson };
   },
 });
 
@@ -137,14 +167,32 @@ export const makeLesson = action({
   },
   handler: async (ctx, { topic, link, level }): Promise<string> => {
     const typed = topic?.trim().slice(0, 120);
-    let passages: Passage[];
-    let trusted = true;
+    let passages: Passage[] = [];
     let name = typed ?? "";
+    let note: string | undefined;
     if (link?.trim()) {
-      const page = await readPage(link.trim());
-      passages = page.passages;
-      trusted = page.trusted;
-      name = typed || page.title;
+      let url: URL;
+      try {
+        url = new URL(link.trim());
+      } catch {
+        throw new Error("That doesn't look like a link.");
+      }
+      const host = url.hostname.replace(/^www\./, "");
+      // Lessons only ever teach from reviewed medical sources. For any other page, the teacher works out
+      // its topic and teaches that topic from MedlinePlus instead, so nothing comes from the page itself.
+      const page = await readPage(url.toString()).catch(() => null);
+      if (page && isTrusted(host)) {
+        passages = page.passages;
+        name = typed || page.title;
+      } else {
+        name = typed || (page ? cleanTitle(page.title) : "") || slugWords(url);
+        passages = name ? await searchMedlinePlus(name) : [];
+        if (passages.length === 0)
+          throw new Error("I couldn't find this topic in my trusted sources, so I won't make a lesson from it.");
+        note = isTrusted(host)
+          ? `${host} couldn't be read, so this lesson teaches the same topic from MedlinePlus.`
+          : `${host} isn't one of our reviewed medical sources, so this lesson teaches the same topic from MedlinePlus instead.`;
+      }
     } else if (typed) {
       passages = await searchMedlinePlus(typed);
       if (passages.length === 0) throw new Error(`MedlinePlus has nothing on "${typed}". Try another wording.`);
@@ -155,9 +203,6 @@ export const makeLesson = action({
     const sources = passages
       .map((p, i) => `<passage index="${i + 1}" org="${p.org}" url="${p.url}" title="${p.title}">\n${p.passage}\n</passage>`)
       .join("\n\n");
-    const caution = trusted
-      ? ""
-      : "\nThe passages come from a site that is not a reviewed medical source. Only use statements that are consistent with mainstream medical guidance, and leave out anything doubtful.";
 
     const client = new Anthropic();
     const response = await client.beta.messages.parse({
@@ -166,7 +211,7 @@ export const makeLesson = action({
       output_config: { effort: "medium", format: betaZodOutputFormat(CustomSchema) },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}${caution}\nIf the material is not about health or medicine, set onTopic to false.`,
+      system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the material is not about health or medicine, set onTopic to false.`,
       messages: [{ role: "user", content: `Topic: ${name}\n\n${sources}\n\nWrite the lesson.` }],
     });
     if (response.stop_reason === "refusal") throw new Error("The teacher couldn't make a lesson from that.");
@@ -174,15 +219,14 @@ export const makeLesson = action({
     if (!lesson) throw new Error("The lesson came out incomplete. Please try again.");
     if (!lesson.onTopic) throw new Error("That doesn't look like health material, so there's no lesson to make.");
 
-    const known = new Set(passages.map((p) => p.url));
-    lesson.facts = lesson.facts.filter((f) => known.has(f.sourceUrl));
-    if (lesson.facts.length === 0) throw new Error("The lesson had no facts tied to the sources. Please try again.");
+    await checkLesson(client, lesson, passages, sources);
 
     return await ctx.runMutation(internal.custom.save, {
-      topic: name.slice(0, 160),
+      topic: (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 160),
       level,
       link: link?.trim() || undefined,
-      trusted,
+      trusted: true,
+      note,
       lesson,
       passages,
     });

@@ -44,7 +44,14 @@ export const LessonSchema = z.object({
   expected: z.string().describe("What most people picture for this condition, in under 12 words"),
   takeaway: z.string().describe("One sentence the learner should remember"),
   facts: z
-    .array(z.object({ text: z.string(), sourceUrl: z.string(), sourceOrg: z.string() }))
+    .array(
+      z.object({
+        text: z.string(),
+        quote: z.string().describe("One sentence copied word for word from the cited passage that supports this fact"),
+        sourceUrl: z.string(),
+        sourceOrg: z.string(),
+      }),
+    )
     .min(2),
   urgent: z.boolean(),
 });
@@ -57,7 +64,7 @@ export type Passage = { title: string; url: string; org: string; passage: string
 export const LESSON_RULES = `You are the teacher in Her Signs, an app that teaches women how health conditions can show up differently in women.
 
 Write one short lesson from the passages the user gives you. Rules:
-- Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly.
+- Use only facts stated in the passages. Every fact in "facts" must cite the url and org of the passage it came from, copied exactly, and include a quote: one sentence copied word for word from that passage that supports the fact.
 - The scenario is about a named woman in everyday life whose symptoms are easy to dismiss. The question asks what the learner thinks is going on or what she should do; exactly one option is right and the others are common misconceptions. All four options must be similar in length, detail and tone (one short sentence each), so the right one does not stand out by being longer or more specific.
 - Never diagnose the learner or tell her what she has. Encourage seeing a clinician.
 - If the condition can be an emergency (heart attack), set urgent to true and say in the explanation to call 911 right away.
@@ -142,12 +149,89 @@ export const generateLesson = action({
     const lesson = response.parsed_output;
     if (!lesson) throw new Error(`Lesson did not match the schema (stop_reason: ${response.stop_reason}).`);
 
-    // Keep only facts that cite a passage we actually retrieved.
-    const known = new Set(passages.map((p) => p.url));
-    lesson.facts = lesson.facts.filter((f) => known.has(f.sourceUrl));
-    if (lesson.facts.length === 0) throw new Error("Lesson had no facts citing retrieved sources.");
+    await checkLesson(client, lesson, passages, sources);
 
     await ctx.runMutation(internal.lessons.save, { condition, lesson });
     return lesson;
   },
 });
+
+const normalize = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const ReviewSchema = z.object({
+  answerSupported: z.boolean().describe("The passages support the option marked correct, and not the others"),
+  unsupportedClaims: z
+    .array(z.string())
+    .describe("Sentences from the explanation or takeaway that the passages don't support, copied exactly"),
+  unsupportedRedFlags: z.array(z.string()).describe("Items from redFlags the passages don't support, copied exactly"),
+  unsupportedDifferential: z
+    .array(z.string())
+    .describe("Items from differential the passages don't support, copied exactly"),
+});
+
+const REVIEWER = `You are a medical fact-checker. You get source passages and a lesson written from them. Check the lesson only against the passages, not your own knowledge. Report anything the passages don't support. Be strict: a claim is supported only if a passage states it or plainly implies it.`;
+
+/**
+ * Guards against the model getting things wrong:
+ * 1. Every fact must quote its source, and the quote must really appear in the passage we retrieved.
+ * 2. A second model call fact-checks the answer, explanation, red flags and differential against the passages,
+ *    and anything unsupported is removed. If the answer itself isn't supported, the lesson is rejected.
+ */
+export async function checkLesson(
+  client: Anthropic,
+  lesson: {
+    explanation: string;
+    takeaway: string;
+    options: string[];
+    correctIndex: number;
+    facts: { text: string; quote: string; sourceUrl: string }[];
+    redFlags?: string[];
+    differential?: string[];
+  },
+  passages: Passage[],
+  sources: string,
+) {
+  lesson.facts = lesson.facts.filter((f) => {
+    const quote = normalize(f.quote);
+    return (
+      quote.length >= 20 && passages.some((p) => p.url === f.sourceUrl && normalize(p.passage).includes(quote))
+    );
+  });
+  if (lesson.facts.length === 0) throw new Error("None of the lesson's facts could be matched to its sources.");
+
+  const review = await client.beta.messages.parse({
+    model: "claude-opus-5-5",
+    max_tokens: 8000,
+    output_config: { effort: "low", format: betaZodOutputFormat(ReviewSchema) },
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system: REVIEWER,
+    messages: [
+      {
+        role: "user",
+        content: `${sources}\n\n<lesson>\n${JSON.stringify({
+          options: lesson.options,
+          correct: lesson.options[lesson.correctIndex],
+          explanation: lesson.explanation,
+          takeaway: lesson.takeaway,
+          redFlags: lesson.redFlags,
+          differential: lesson.differential,
+        })}\n</lesson>`,
+      },
+    ],
+  });
+  const verdict = review.parsed_output;
+  if (!verdict) throw new Error("The fact-check didn't finish. Please try again.");
+  if (!verdict.answerSupported) throw new Error("The fact-check couldn't confirm the answer from the sources.");
+  for (const claim of verdict.unsupportedClaims) {
+    lesson.explanation = lesson.explanation.replace(claim, "").replace(/\s{2,}/g, " ").trim();
+    if (lesson.takeaway.includes(claim)) lesson.takeaway = "";
+  }
+  const unsupported = new Set([...verdict.unsupportedRedFlags, ...verdict.unsupportedDifferential]);
+  lesson.redFlags = lesson.redFlags?.filter((x) => !unsupported.has(x));
+  lesson.differential = lesson.differential?.filter((x) => !unsupported.has(x));
+}

@@ -3,7 +3,7 @@
 import { useAction, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { convexEnabled } from "./ConvexClientProvider";
 import Tilt from "./Tilt";
@@ -15,11 +15,11 @@ export default function LessonMaker() {
 
 function Maker() {
   const router = useRouter();
-  // The browser extension opens this page with ?link=<the page you were on>.
+  // The browser extension opens this page with ?link=<the page you were on> (or ?topic=) and &auto=1.
   const params = useSearchParams();
   const make = useAction(api.custom.makeLesson);
   const recent = useQuery(api.custom.recent);
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(params.get("topic") ?? "");
   const [link, setLink] = useState(params.get("link") ?? "");
   const [level, setLevel] = useState<"everyday" | "med">(params.get("level") === "med" ? "med" : "everyday");
   const [busy, setBusy] = useState(false);
@@ -36,6 +36,13 @@ function Maker() {
       setBusy(false);
     }
   };
+
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current || params.get("auto") !== "1" || (!topic && !link)) return;
+    autoStarted.current = true;
+    queueMicrotask(submit);
+  });
 
   return (
     <>
@@ -102,8 +109,9 @@ function Maker() {
             {error && <p className="mt-2 text-sm text-alert">{error}</p>}
           </div>
           <p className="text-xs text-muted">
-            Typed topics use MedlinePlus from the U.S. National Library of Medicine. Lessons from links outside
-            reviewed medical sites are labeled as such. This is education, not medical advice.
+            Lessons only use reviewed medical sources: MedlinePlus (U.S. National Library of Medicine), or a link
+            from a site like NIH, CDC or ACOG. For any other link, your teacher finds the topic and teaches it from
+            MedlinePlus instead. Every fact is checked against its source. This is education, not medical advice.
           </p>
         </form>
       </Tilt>
