@@ -32,7 +32,7 @@ export default function TeacherVoice({
     (text: string) => {
       let p = urls.current.get(text);
       if (!p) {
-        p = speak({ text });
+        p = speak({ text: forSpeech(text) });
         p.catch(() => urls.current.delete(text));
         urls.current.set(text, p);
       }
@@ -140,4 +140,9 @@ export default function TeacherVoice({
       {error && <span className="text-red-300">{error}</span>}
     </div>
   );
+}
+
+/** Spells out numbers that text-to-speech reads the wrong way, e.g. 911 as "nine hundred eleven". */
+function forSpeech(text: string) {
+  return text.replace(/\b911\b/g, "nine one one");
 }
