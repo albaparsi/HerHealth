@@ -11,15 +11,30 @@ const CONDITION_NAMES: Record<string, string> = {
   endometriosis: "endometriosis",
   adhd: "ADHD",
 };
-const BODY_REGIONS = ["chest", "jaw", "back", "left_arm", "stomach", "pelvis", "head"] as const;
+const BODY_REGIONS = [
+  "head",
+  "jaw",
+  "chest",
+  "left_arm",
+  "back",
+  "stomach",
+  "pelvis",
+  "whole_body",
+] as const;
 
 const LessonSchema = z.object({
+  person: z.object({ name: z.string(), age: z.number().int() }),
   scenario: z.string().describe("3-4 sentence story about a named woman noticing symptoms"),
   question: z.string(),
   options: z.array(z.string()).length(4),
   correctIndex: z.number().int().min(0).max(3),
   explanation: z.string().describe("Spoken aloud by the teacher: warm, plain words, under 120 words"),
   bodyRegions: z.array(z.enum(BODY_REGIONS)),
+  symptoms: z
+    .array(z.object({ label: z.string().describe("2-4 words, e.g. 'jaw ache'"), region: z.enum(BODY_REGIONS) }))
+    .describe("Each symptom the woman in the scenario has, in the order she notices them"),
+  expected: z.string().describe("What most people picture for this condition, in under 12 words"),
+  takeaway: z.string().describe("One sentence the learner should remember"),
   facts: z
     .array(z.object({ text: z.string(), sourceUrl: z.string(), sourceOrg: z.string() }))
     .min(2),
@@ -36,7 +51,9 @@ Write one short lesson from the passages the user gives you. Rules:
 - The scenario is about a named woman in everyday life whose symptoms are easy to dismiss. The question asks what the learner thinks is going on or what she should do; exactly one option is right and the others are common misconceptions.
 - Never diagnose the learner or tell her what she has. Encourage seeing a clinician.
 - If the condition can be an emergency (heart attack), set urgent to true and say in the explanation to call 911 right away.
-- bodyRegions lists only the regions the scenario's symptoms involve.`;
+- bodyRegions lists only the regions the scenario's symptoms involve; use whole_body for things like fatigue or cold sweat.
+- The lesson is shown visually: symptoms appear as labeled points on a body diagram, and "expected" is contrasted with what she actually felt.
+- Tone: calm, clear and serious, like a good clinician teaching. No exclamation marks or cutesy language.`;
 
 async function searchElastic(condition: string, query: string): Promise<Passage[]> {
   const url = process.env.ELASTIC_URL;

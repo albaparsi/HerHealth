@@ -27,7 +27,7 @@ export const CONDITIONS: Condition[] = [
     slug: "adhd",
     name: "ADHD",
     tagline:
-      "Less bouncing off walls, more quiet overwhelm. Many women find out as adults.",
+      "Often inattentive rather than hyperactive, so many women are diagnosed only as adults.",
     urgent: false,
     status: "soon",
   },
