@@ -9,6 +9,12 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_condition", ["condition"]),
 
+  // Cached teacher audio (Cartesia TTS), keyed by a hash of model, voice and text.
+  speech: defineTable({
+    hash: v.string(),
+    storageId: v.id("_storage"),
+  }).index("by_hash", ["hash"]),
+
   // Pre/post quiz scores per anonymous learner (Step 6).
   attempts: defineTable({
     learnerId: v.string(),

@@ -10,6 +10,7 @@
   
   import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
   import type * as lessons from "../lessons.js";
+import type * as speech from "../speech.js";
 
   /**
    * A utility for referencing Convex functions in your app's API.
@@ -21,6 +22,7 @@
    */
   declare const fullApi: ApiFromModules<{
     "lessons": typeof lessons,
+"speech": typeof speech,
   }>;
   export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
   export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;

@@ -2,11 +2,12 @@
 
 import { useAction, useQuery } from "convex/react";
 import dynamic from "next/dynamic";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import type { AvatarHandle } from "./Avatar";
 import BodyMap, { type Region, type Symptom } from "./BodyMap";
 import { convexEnabled } from "./ConvexClientProvider";
+import TeacherVoice from "./TeacherVoice";
 
 const Avatar = dynamic(() => import("./Avatar"), { ssr: false });
 
@@ -30,21 +31,29 @@ export type Lesson = {
 export default function Classroom({ condition, title }: { condition: string; title: string }) {
   const avatar = useRef<AvatarHandle>(null);
   const [caption, setCaption] = useState(`Welcome. Today's lesson: ${title.toLowerCase()} in women.`);
+  const [lines, setLines] = useState<string[]>([]);
+  const [interacted, setInteracted] = useState(false);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <div
+      className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
+      onPointerDown={() => setInteracted(true)}
+    >
       <aside className="lg:sticky lg:top-6 lg:self-start">
         <div className="overflow-hidden rounded-lg bg-stage bg-[radial-gradient(ellipse_at_50%_35%,#3a4552_0%,#1c232c_70%)]">
           <Avatar ref={avatar} className="aspect-[4/3] w-full lg:aspect-[4/5]" />
           <div className="border-t border-white/10 px-5 py-4" aria-live="polite">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Your teacher</p>
             <p className="mt-1.5 text-[15px] leading-relaxed text-white/90">{caption}</p>
+            {convexEnabled && (
+              <TeacherVoice caption={caption} prefetch={lines} avatar={avatar} interacted={interacted} />
+            )}
           </div>
         </div>
       </aside>
 
       {convexEnabled ? (
-        <Board condition={condition} onSay={setCaption} />
+        <Board condition={condition} onSay={setCaption} onLines={setLines} />
       ) : (
         <Panel>
           <p className="text-muted">Lessons are coming soon. The lesson service isn&apos;t connected yet.</p>
@@ -65,7 +74,15 @@ function Panel({ children }: { children: ReactNode }) {
   );
 }
 
-function Board({ condition, onSay }: { condition: string; onSay: (text: string) => void }) {
+function Board({
+  condition,
+  onSay,
+  onLines,
+}: {
+  condition: string;
+  onSay: (text: string) => void;
+  onLines: (lines: string[]) => void;
+}) {
   const lesson = useQuery(api.lessons.get, { condition }) as Lesson | null | undefined;
   const generate = useAction(api.lessons.generateLesson);
   const [busy, setBusy] = useState(false);
@@ -104,24 +121,40 @@ function Board({ condition, onSay }: { condition: string; onSay: (text: string) 
     );
   }
 
-  return <LessonView lesson={lesson} onSay={onSay} onNewCase={newCase} busy={busy} error={error} />;
+  return <LessonView lesson={lesson} onSay={onSay} onLines={onLines} onNewCase={newCase} busy={busy} error={error} />;
+}
+
+/** What the teacher says at each step. */
+function scriptFor(lesson: Lesson) {
+  return [
+    lesson.scenario,
+    lesson.question,
+    lesson.explanation,
+    lesson.takeaway ?? "Here is where every fact in this lesson comes from.",
+  ];
 }
 
 export function LessonView({
   lesson,
   onSay,
+  onLines,
   onNewCase,
   busy,
   error,
 }: {
   lesson: Lesson;
   onSay: (text: string) => void;
+  onLines?: (lines: string[]) => void;
   onNewCase: () => Promise<boolean>;
   busy: boolean;
   error: string | null;
 }) {
   const [step, setStep] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
+
+  useEffect(() => {
+    onLines?.(scriptFor(lesson));
+  }, [lesson, onLines]);
 
   const symptoms: Symptom[] =
     lesson.symptoms ?? lesson.bodyRegions.map((r) => ({ label: r.replace("_", " "), region: r }));
@@ -131,13 +164,7 @@ export function LessonView({
 
   function goTo(next: number) {
     setStep(next);
-    const lines = [
-      lesson.scenario,
-      lesson.question,
-      lesson.explanation,
-      lesson.takeaway ?? "Here is where every fact in this lesson comes from.",
-    ];
-    onSay(lines[next]);
+    onSay(scriptFor(lesson)[next]);
   }
 
   const answer = (i: number) => {
