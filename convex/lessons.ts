@@ -6,6 +6,13 @@ import { internal } from "./_generated/api";
 import { action, internalMutation, query } from "./_generated/server";
 
 const INDEX = "women-health-sources";
+// Each lesson draws from its own names, so cases across lessons don't share a person.
+const PERSON_NAMES: Record<string, string[]> = {
+  "heart-attack": ["Denise", "Carmen", "Gloria", "Linda", "Yvonne"],
+  endometriosis: ["Jasmine", "Aisha", "Hannah", "Sofia", "Elena"],
+  adhd: ["Rachel", "Mei", "Olivia", "Leah", "Tanya"],
+};
+
 export const CONDITION_NAMES: Record<string, string> = {
   "heart-attack": "heart attack",
   endometriosis: "endometriosis",
@@ -42,6 +49,8 @@ const LessonSchema = z.object({
   urgent: z.boolean(),
 });
 export type Lesson = z.infer<typeof LessonSchema>;
+
+const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)];
 
 export type Passage = { title: string; url: string; org: string; passage: string };
 
@@ -122,7 +131,10 @@ export const generateLesson = action({
       fallbacks: "default",
       system: SYSTEM,
       messages: [
-        { role: "user", content: `Condition: ${name}\n\n${sources}\n\nWrite the lesson.` },
+        {
+          role: "user",
+          content: `Condition: ${name}\nName the woman in the case ${pick(PERSON_NAMES[condition])}.\n\n${sources}\n\nWrite the lesson.`,
+        },
       ],
     });
     if (response.stop_reason === "refusal") throw new Error("Claude declined to write this lesson.");
