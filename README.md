@@ -4,6 +4,8 @@ Learn how heart attack, endometriosis and ADHD show up differently in women. A 3
 teacher tells a real-life scenario, quizzes you, then explains what's happening in the body
 and cites a trusted source (AHA, CDC, NIH, MedlinePlus, womenshealth.gov, ACOG) for every fact.
 
+Live: https://her-health-wheat.vercel.app
+
 Built solo at Cal Hacks 13.0. Education, not medical advice.
 
 ## Stack
