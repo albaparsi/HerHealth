@@ -52,16 +52,10 @@ export const save = internalMutation({
   },
 });
 
-/** Spoken form of the caption: "911" / "9-1-1" read as "nine one one", not "nine hundred eleven". */
-function forSpeech(text: string): string {
-  return text.replace(/\b9-?1-?1\b/g, "nine one one");
-}
-
 /** Returns a URL to an MP3 of the teacher saying `text`. Audio is cached so each line is generated once. */
 export const speak = action({
   args: { text: v.string() },
-  handler: async (ctx, args): Promise<string> => {
-    const text = forSpeech(args.text);
+  handler: async (ctx, { text }): Promise<string> => {
     const voice = await voiceId();
     const hash = await sha256(`${MODEL}|${voice}|${text}`);
     const hit = await ctx.runQuery(internal.speech.cached, { hash });
