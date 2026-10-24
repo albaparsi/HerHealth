@@ -193,8 +193,8 @@ function Model({
         if (cancelled) return r.dispose();
         loaded = r;
         // Frame from the chest up.
-        camera.position.set(0, r.headY, 1.45);
-        camera.lookAt(0, r.headY - 0.04, 0);
+        camera.position.set(0, r.headY, 1.15);
+        camera.lookAt(0, r.headY - 0.03, 0);
         r.lookAt(camera);
         setRig(r);
         onLoaded();

@@ -23,11 +23,13 @@ npm run dev                     # http://localhost:3000
 ```
 
 ### Avatar
-The teacher is `public/avatar.glb`: the CC0 "mpfb.glb" example avatar from
-[TalkingHead](https://github.com/met4citizen/TalkingHead), made with MakeHuman/MPFB, with ARKit and
-viseme blendshapes for lip sync. It was compressed with
-`npx @gltf-transform/cli optimize ... --compress meshopt --texture-compress webp --texture-size 1024`
-(37 MB to 3 MB). The app recolors its shirt and poses the arms at load time.
+The teacher is `public/avatar.glb`: the "brunette.glb" example avatar from
+[TalkingHead](https://github.com/met4citizen/TalkingHead), created at Ready Player Me and licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) (non-commercial use, attribution).
+It has ARKit and viseme blendshapes for lip sync. It was compressed with
+`npx @gltf-transform/cli optimize ... --compress meshopt --texture-compress webp --texture-size 1024`.
+The app recolors her top and poses the arms at load time. For commercial use, swap in a CC0 model
+such as TalkingHead's "mpfb.glb".
 
 ### Trusted sources into Elastic
 1. Create an Elastic Cloud **Serverless** project (Elasticsearch, general purpose).
