@@ -29,7 +29,7 @@ export const CONDITIONS: Condition[] = [
     tagline:
       "Often inattentive rather than hyperactive, so many women are diagnosed only as adults.",
     urgent: false,
-    status: "soon",
+    status: "ready",
   },
 ];
 
@@ -100,6 +100,36 @@ export const QUICK_CHECKS: Record<string, CheckItem[]> = {
       why: "Imaging can miss it. Surgery (laparoscopy) is the only way to know for sure.",
       sourceOrg: "NIH NICHD",
       sourceUrl: "https://www.nichd.nih.gov/health/topics/endometri/conditioninfo/diagnose",
+    },
+  ],
+  adhd: [
+    {
+      statement: "ADHD always shows up as hyperactive, disruptive behavior.",
+      answer: false,
+      why: "ADHD can be mainly inattentive, mainly hyperactive-impulsive, or both combined.",
+      sourceOrg: "NIH NIMH",
+      sourceUrl: "https://www.nimh.nih.gov/health/topics/attention-deficit-hyperactivity-disorder-adhd",
+    },
+    {
+      statement: "Often losing things, forgetting daily tasks and having trouble staying focused can be signs of ADHD.",
+      answer: true,
+      why: "These are listed signs of inattention.",
+      sourceOrg: "CDC",
+      sourceUrl: "https://www.cdc.gov/adhd/signs-symptoms/index.html",
+    },
+    {
+      statement: "ADHD is only a childhood condition, so adults can't have it.",
+      answer: false,
+      why: "ADHD often continues into adulthood, and some people are first diagnosed as adults.",
+      sourceOrg: "NIH NIMH",
+      sourceUrl: "https://www.nimh.nih.gov/health/publications/adhd-what-you-need-to-know",
+    },
+    {
+      statement: "Medication is the only treatment for ADHD.",
+      answer: false,
+      why: "Treatment can include behavior therapy, medication, or both.",
+      sourceOrg: "CDC",
+      sourceUrl: "https://www.cdc.gov/adhd/treatment/index.html",
     },
   ],
 };
