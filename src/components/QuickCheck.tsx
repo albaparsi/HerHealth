@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CheckItem } from "@/lib/conditions";
+import { at } from "@/lib/depth";
 
 /**
  * True-or-false check run before and after a lesson. Answers are revealed only after the
@@ -57,12 +58,12 @@ export default function QuickCheck({
         </div>
       )}
 
-      <ol className="mt-6 grid gap-3">
+      <ol className="mt-6 grid gap-3 [transform-style:preserve-3d]">
         {items.map((item, i) => {
           const right = answers[i] === item.answer;
           const reveal = submitted && phase === "after";
           return (
-            <li key={i} className="rounded-md border border-line p-4">
+            <li key={i} className="chip rise p-4" style={at(i, 20)}>
               <p className="flex gap-3">
                 <span className="font-serif text-muted">{i + 1}.</span>
                 <span>{item.statement}</span>

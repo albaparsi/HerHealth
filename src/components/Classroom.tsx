@@ -11,6 +11,8 @@ import { convexEnabled } from "./ConvexClientProvider";
 import QuickCheck from "./QuickCheck";
 import { QUICK_CHECKS } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
+import Tilt from "./Tilt";
+import { at } from "@/lib/depth";
 import AskTeacher from "./AskTeacher";
 
 const Avatar = dynamic(() => import("./Avatar"), { ssr: false });
@@ -73,13 +75,13 @@ export default function Classroom({ condition, title }: { condition: string; tit
 
 function Panel({ children }: { children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-line bg-surface p-6 sm:p-8">
+    <Tilt className="p-6 sm:p-8">
       {children}
-      <p className="mt-8 border-t border-line pt-4 text-xs text-muted">
+      <p className="mt-8 border-t border-line/70 pt-4 text-xs text-muted">
         This is education, not medical advice. Only a clinician can tell you what is happening in your body.{" "}
         <Link href="/about" className="underline">How lessons are made</Link>
       </p>
-    </section>
+    </Tilt>
   );
 }
 
@@ -274,14 +276,16 @@ export function LessonView({
         </p>
       )}
 
-      <div className="mt-6">
+      <div key={step} className="mt-6 [transform-style:preserve-3d]">
         {step === 0 && (
           <>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Case</p>
-            <h2 className="mt-1 font-serif text-3xl">{who}</h2>
-            <p className="mt-4 leading-relaxed">{lesson.scenario}</p>
+            <div className="rise" style={at(0, 10)}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Case</p>
+              <h2 className="mt-1 font-serif text-3xl">{who}</h2>
+            </div>
+            <p className="rise mt-4 leading-relaxed" style={at(1)}>{lesson.scenario}</p>
             <h3 className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-muted">What she notices</h3>
-            <div className="mt-3">
+            <div className="mt-3 [transform-style:preserve-3d]">
               <BodyMap symptoms={symptoms} />
             </div>
             <Next onClick={() => goTo(1)}>What should {firstName} do?</Next>
@@ -290,15 +294,17 @@ export function LessonView({
 
         {step === 1 && (
           <>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Your call</p>
-            <h2 className="mt-1 font-serif text-2xl leading-snug">{lesson.question}</h2>
-            <ul className="mt-6 grid gap-2.5">
+            <div className="rise" style={at(0, 10)}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Your call</p>
+              <h2 className="mt-1 font-serif text-2xl leading-snug">{lesson.question}</h2>
+            </div>
+            <ul className="mt-6 grid gap-3 [transform-style:preserve-3d]">
               {lesson.options.map((option, i) => (
-                <li key={i}>
+                <li key={i} className="rise" style={at(i + 1, 24)}>
                   <button
                     onClick={() => answer(i)}
-                    className={`flex w-full items-start gap-3 rounded-md border px-4 py-3.5 text-left transition hover:border-accent hover:bg-accent-soft ${
-                      chosen === i ? "border-accent bg-accent-soft" : "border-line"
+                    className={`chip flex w-full items-start gap-3 px-4 py-3.5 text-left ${
+                      chosen === i ? "ring-2 ring-accent" : ""
                     }`}
                   >
                     <span className="font-serif text-lg leading-none text-muted">{"ABCD"[i]}</span>
@@ -317,16 +323,16 @@ export function LessonView({
                 {correct ? "Correct." : `Not quite. The answer is ${"ABCD"[lesson.correctIndex]}: ${lesson.options[lesson.correctIndex]}`}
               </p>
             )}
-            <h2 className="mt-2 font-serif text-2xl">What&apos;s happening</h2>
-            <p className="mt-3 leading-relaxed">{lesson.explanation}</p>
+            <h2 className="rise mt-2 font-serif text-2xl" style={at(0, 10)}>What&apos;s happening</h2>
+            <p className="rise mt-3 leading-relaxed" style={at(1)}>{lesson.explanation}</p>
 
             {lesson.expected && (
-              <div className="mt-8 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2">
-                <div className="bg-paper p-4">
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 [transform-style:preserve-3d]">
+                <div className="chip rise bg-paper/80 p-4 shadow-none" style={at(2, 8)}>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">What most people expect</p>
                   <p className="mt-2 text-sm">{lesson.expected}</p>
                 </div>
-                <div className="bg-surface p-4">
+                <div className="chip rise p-4" style={at(3, 30)}>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-alert">What {firstName} felt</p>
                   <p className="mt-2 text-sm">{symptoms.map((s) => s.label).join(", ")}</p>
                 </div>
@@ -334,7 +340,9 @@ export function LessonView({
             )}
 
             {lesson.takeaway && (
-              <p className="mt-8 border-l-2 border-accent pl-4 font-serif text-lg leading-snug">{lesson.takeaway}</p>
+              <p className="rise mt-8 border-l-2 border-accent pl-4 font-serif text-lg leading-snug" style={at(4, 16)}>
+                {lesson.takeaway}
+              </p>
             )}
             <Next onClick={() => goTo(3)}>See the sources</Next>
           </>
@@ -344,9 +352,9 @@ export function LessonView({
           <>
             <h2 className="font-serif text-2xl">Sources</h2>
             <p className="mt-2 text-sm text-muted">Every fact in this lesson, and where it comes from.</p>
-            <ol className="mt-6 grid gap-4">
+            <ol className="mt-6 grid gap-3 [transform-style:preserve-3d]">
               {lesson.facts.map((f, i) => (
-                <li key={i} className="flex gap-3 text-sm">
+                <li key={i} className="chip rise flex gap-3 p-4 text-sm" style={at(i, 18)}>
                   <span className="font-serif text-muted">{i + 1}.</span>
                   <span>
                     {f.text}{" "}

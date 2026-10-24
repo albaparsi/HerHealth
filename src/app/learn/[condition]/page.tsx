@@ -14,6 +14,7 @@ export default async function LearnPage({ params }: PageProps<"/learn/[condition
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+      <div className="floor" aria-hidden />
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-5">
         <div>
           <Link href="/" className="text-sm text-muted hover:text-accent">

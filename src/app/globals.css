@@ -24,3 +24,102 @@ body {
   0% { r: 6; opacity: 0.55; }
   100% { r: 16; opacity: 0; }
 }
+
+/* Depth: lesson visuals float in a shallow 3D space around the teacher. */
+body {
+  background:
+    radial-gradient(1100px 620px at 15% -10%, #e2ecef 0%, transparent 60%),
+    radial-gradient(900px 560px at 110% 25%, #ecefe8 0%, transparent 60%),
+    var(--color-paper);
+  background-attachment: fixed;
+}
+
+.scene {
+  perspective: 1600px;
+}
+
+.float-panel {
+  --rx: 0deg;
+  --ry: 0deg;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.3s ease-out;
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.72));
+  border: 1px solid rgb(255 255 255 / 0.8);
+  box-shadow:
+    0 1px 2px rgb(20 24 31 / 0.04),
+    0 14px 28px -10px rgb(20 24 31 / 0.12),
+    0 48px 90px -30px rgb(22 78 99 / 0.28);
+}
+
+/* A card that sits in front of its panel. */
+.chip {
+  border-radius: 0.85rem;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(20 24 31 / 0.05),
+    0 10px 22px -12px rgb(20 24 31 / 0.22);
+  transition: translate 0.2s ease, box-shadow 0.2s ease;
+}
+button.chip:hover,
+a.chip:hover {
+  translate: 0 -3px;
+  box-shadow:
+    0 2px 4px rgb(20 24 31 / 0.06),
+    0 18px 30px -12px rgb(22 78 99 / 0.35);
+}
+
+/* Items rise into place, one after another (set --i for the order and --z for depth). */
+.rise {
+  animation: rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  transform: translateZ(var(--z, 0px));
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, -80px) rotateX(12deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(var(--z, 0px));
+  }
+}
+
+/* Idle drift, independent of the transform above. */
+.bob {
+  animation: bob 6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -1.3s);
+}
+@keyframes bob {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+/* A faint floor grid that recedes behind the page. */
+.floor {
+  position: fixed;
+  inset: auto -50% -10% -50%;
+  height: 55vh;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(22 78 99 / 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(22 78 99 / 0.12) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transform: perspective(600px) rotateX(62deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to top, black 10%, transparent 85%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .bob {
+    animation: none;
+  }
+  .float-panel {
+    transform: none;
+  }
+}

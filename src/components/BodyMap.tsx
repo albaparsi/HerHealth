@@ -1,3 +1,5 @@
+import { at } from "@/lib/depth";
+
 export type Region =
   | "head"
   | "jaw"
@@ -40,10 +42,33 @@ export default function BodyMap({ symptoms, active }: { symptoms: Symptom[]; act
   const wholeBody = symptoms.some((s) => s.region === "whole_body");
 
   return (
-    <div className="flex items-start gap-5">
-      <svg viewBox="0 0 200 390" className="w-28 shrink-0 sm:w-44" role="img" aria-label="Body diagram">
+    <div className="flex items-start gap-5 [transform-style:preserve-3d]">
+      <svg
+        viewBox="0 0 200 400"
+        className="rise bob w-28 shrink-0 drop-shadow-[0_18px_22px_rgba(22,78,99,0.18)] sm:w-44"
+        style={at(2, 40)}
+        role="img"
+        aria-label="Body diagram"
+      >
+        <defs>
+          {/* Shading across the figure so it reads as a rounded form, not a flat outline. */}
+          <linearGradient id="bm-body" x1="0" x2="1">
+            <stop offset="0" stopColor="#cfd6dd" />
+            <stop offset="0.45" stopColor="#f4f6f8" />
+            <stop offset="1" stopColor="#c6ced6" />
+          </linearGradient>
+          <radialGradient id="bm-dot" cx="0.35" cy="0.3" r="0.75">
+            <stop offset="0" stopColor="#f2685c" />
+            <stop offset="1" stopColor="#8a160e" />
+          </radialGradient>
+          <radialGradient id="bm-floor">
+            <stop offset="0" stopColor="#164e63" stopOpacity="0.22" />
+            <stop offset="1" stopColor="#164e63" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="100" cy="388" rx="62" ry="9" fill="url(#bm-floor)" />
         <g
-          fill="#e7eaee"
+          fill="url(#bm-body)"
           stroke={wholeBody ? "#164e63" : "#c9ced5"}
           strokeWidth={wholeBody ? 2 : 1}
           strokeDasharray={wholeBody ? "4 3" : undefined}
@@ -65,7 +90,7 @@ export default function BodyMap({ symptoms, active }: { symptoms: Symptom[]; act
               {isActive && (
                 <circle cx={x} cy={y} r="6" fill="#b42318" style={{ animation: "pulse-ring 1.6s ease-out infinite" }} />
               )}
-              <circle cx={x} cy={y} r="9" fill="#b42318" />
+              <circle cx={x} cy={y} r="9" fill="url(#bm-dot)" />
               <text x={x} y={y + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">
                 {i + 1}
               </text>
@@ -74,12 +99,13 @@ export default function BodyMap({ symptoms, active }: { symptoms: Symptom[]; act
         })}
       </svg>
 
-      <ol className="grid flex-1 gap-2 text-sm">
+      <ol className="grid flex-1 gap-2.5 text-sm [transform-style:preserve-3d]">
         {symptoms.map((s, i) => (
           <li
             key={i}
-            className={`flex items-start gap-3 rounded-md border px-3 py-2 transition ${
-              active === undefined || active === i ? "border-line bg-surface" : "border-transparent opacity-50"
+            style={at(i + 3, 28)}
+            className={`chip rise bob flex items-start gap-3 px-3 py-2 ${
+              active === undefined || active === i ? "" : "opacity-50"
             }`}
           >
             <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-alert text-[10px] font-bold text-white">
