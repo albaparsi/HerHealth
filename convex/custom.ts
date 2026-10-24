@@ -86,6 +86,24 @@ async function searchMedlinePlus(topic: string): Promise<Passage[]> {
     .filter((p) => p.passage.length > 100);
 }
 
+/** Up to two more MedlinePlus passages about the topic in women, pregnancy or menopause, if they exist. */
+async function womenPassages(topic: string, have: Passage[]): Promise<Passage[]> {
+  const words = normalizeWords(topic).filter((w) => w.length >= 4);
+  const seen = new Set(have.map((p) => p.url));
+  const extra: Passage[] = [];
+  for (const angle of ["women", "pregnancy", "menopause"]) {
+    const found = await searchMedlinePlus(`${topic} ${angle}`).catch(() => []);
+    for (const p of found) {
+      const text = normalizeWords(`${p.title} ${p.passage}`).join(" ");
+      if (seen.has(p.url) || !words.some((w) => text.includes(w))) continue;
+      seen.add(p.url);
+      extra.push(p);
+      if (extra.length === 2) return extra;
+    }
+  }
+  return extra;
+}
+
 // Some sites refuse requests that don't look like a browser.
 const BROWSER_HEADERS = {
   "User-Agent":
@@ -110,11 +128,22 @@ const cleanTitle = (title: string) =>
 const STOP_WORDS =
   /\b(what|is|are|the|a|an|of|in|on|for|and|to|your|you|how|why|when|signs?|symptoms?|causes?|treatments?|about|everything|need|know|guide|overview|should|can|may|could|every|things|\d+)\b/gi;
 
-const normalizeWords = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const normalizeWords = (text: string) =>
+  text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
 
 /** The key words of a title, e.g. "10 signs of thyroid disease you should know" becomes "thyroid disease". */
 const shorten = (title: string) =>
-  title.replace(STOP_WORDS, " ").replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 4).join(" ");
+  title
+    .replace(STOP_WORDS, " ")
+    .replace(/[^\w\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, 4)
+    .join(" ");
 
 /** Words from the last part of a link's path, e.g. ".../women-and-heart-disease.html" becomes "women and heart disease". */
 const slugWords = (url: URL) =>
@@ -288,6 +317,9 @@ async function make(
     throw new ConvexError("Type a topic or paste a link.");
   }
 
+  // Lessons are always about women, so also look for what the trusted sources say about this topic in women.
+  passages = [...passages, ...(await womenPassages(name, passages))];
+
   const sources = passages
     .map(
       (p, i) => `<passage index="${i + 1}" org="${p.org}" url="${p.url}" title="${p.title}">\n${p.passage}\n</passage>`,
@@ -304,7 +336,8 @@ async function make(
     },
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the requested topic or the material is not about health or medicine (for example a food, a place or a product on its own), set onTopic to false.`,
+    system: `${LESSON_RULES}\n\nLevel: ${LEVELS[level]}\nIf the requested topic or the material is not about health or medicine (for example a food, a place or a product on its own), set onTopic to false.
+The lesson is always about women, even when the topic is not a women's condition (for example a toothache). The scenario follows a woman, and the explanation and facts focus on what the passages say about this topic in women: pregnancy, periods, menopause, hormones, differences in symptoms or risk, or how it gets missed. If the passages say nothing specific to women, do not invent a difference; teach the topic through her story and say plainly in the explanation that the sources don't describe a difference for women.`,
     messages: [
       {
         role: "user",

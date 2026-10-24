@@ -17,7 +17,7 @@ export default function MakePage() {
         a question and cited sources. Med students can switch to clinical depth.
       </p>
       <p className="mt-3 text-sm">
-        <a href="/her-signs-extension.zip" className="font-medium text-accent underline underline-offset-2">
+        <a href="/her-health-extension.zip" className="font-medium text-accent underline underline-offset-2">
           Get the Chrome extension
         </a>{" "}
         <span className="text-muted">
