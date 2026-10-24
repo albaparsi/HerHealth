@@ -52,7 +52,8 @@ export default function Classroom({ condition, title }: { condition: string; tit
         </div>
         <div className="lg:-mt-6 lg:px-2" aria-live="polite">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Your teacher</p>
-          <p className="mt-1.5 font-serif text-lg leading-snug text-ink">{caption}</p>
+          {/* Lesson lines are already on the card, so only show what she says beyond it (welcome, answers). */}
+          {!lines.includes(caption) && <p className="mt-1.5 font-serif text-lg leading-snug text-ink">{caption}</p>}
           {convexEnabled && (
             <>
               <TeacherVoice caption={caption} prefetch={lines} avatar={avatar} interacted={interacted} />
