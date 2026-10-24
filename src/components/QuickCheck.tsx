@@ -106,7 +106,7 @@ export default function QuickCheck({
             disabled={!ready}
             className="rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {phase === "before" ? "Start the lesson →" : "See my answers"}
+            {phase === "before" ? "Continue to the case →" : "See my answers"}
           </button>
         ) : (
           phase === "after" && (

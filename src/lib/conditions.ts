@@ -4,6 +4,8 @@ export type Condition = {
   tagline: string;
   urgent: boolean;
   status: "ready" | "soon";
+  /** Why this matters for women, shown on the intro page. */
+  intro: { text: string; sourceOrg: string; sourceUrl: string };
 };
 
 export const CONDITIONS: Condition[] = [
@@ -14,6 +16,11 @@ export const CONDITIONS: Condition[] = [
       "Not always crushing chest pain. Jaw ache, nausea and sudden tiredness count too.",
     urgent: true,
     status: "ready",
+    intro: {
+      text: "Heart disease is the leading cause of death for women in the United States. A heart attack doesn't always feel like crushing chest pain. It can show up as shortness of breath, nausea, or pain in the jaw, neck or back.",
+      sourceOrg: "CDC",
+      sourceUrl: "https://www.cdc.gov/heart-disease/about/women-and-heart-disease.html",
+    },
   },
   {
     slug: "endometriosis",
@@ -22,6 +29,11 @@ export const CONDITIONS: Condition[] = [
       "Period pain that stops your life is not \"just cramps.\" It takes years to get diagnosed.",
     urgent: false,
     status: "ready",
+    intro: {
+      text: "Endometriosis affects more than 1 in 10 women ages 15 to 44, and it often takes years to diagnose. Period pain that keeps you from everyday life is not just part of having a period.",
+      sourceOrg: "womenshealth.gov",
+      sourceUrl: "https://www.womenshealth.gov/a-z-topics/endometriosis",
+    },
   },
   {
     slug: "adhd",
@@ -30,6 +42,11 @@ export const CONDITIONS: Condition[] = [
       "Often inattentive rather than hyperactive, so many women are diagnosed only as adults.",
     urgent: false,
     status: "ready",
+    intro: {
+      text: "ADHD isn't only hyperactivity. It can look like quiet trouble with focus, memory and organization. Symptoms in girls and women are often missed, so many are first diagnosed as adults.",
+      sourceOrg: "NIH NIMH",
+      sourceUrl: "https://www.nimh.nih.gov/health/publications/adhd-what-you-need-to-know",
+    },
   },
 ];
 

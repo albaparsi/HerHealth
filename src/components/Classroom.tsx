@@ -9,7 +9,7 @@ import type { AvatarHandle } from "./Avatar";
 import BodyMap, { type Region, type Symptom } from "./BodyMap";
 import { convexEnabled } from "./ConvexClientProvider";
 import QuickCheck from "./QuickCheck";
-import { QUICK_CHECKS } from "@/lib/conditions";
+import { QUICK_CHECKS, getCondition } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
 import Tilt from "./Tilt";
 import { at } from "@/lib/depth";
@@ -99,7 +99,7 @@ function Board({
   const generate = useAction(api.lessons.generateLesson);
   const record = useMutation(api.attempts.record);
   const checks = QUICK_CHECKS[condition];
-  const [phase, setPhase] = useState<"before" | "lesson" | "after">(checks ? "before" : "lesson");
+  const [phase, setPhase] = useState<"intro" | "before" | "lesson" | "after">("intro");
   const [beforeScore, setBeforeScore] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +120,60 @@ function Board({
       setBusy(false);
     }
   };
+
+  if (phase === "intro") {
+    const info = getCondition(condition)!;
+    const plan = [
+      ...(checks ? ["Four quick true-or-false questions, so you can see what you learn."] : []),
+      "A real-life case, and your call on what she should do.",
+      "What's happening, with a trusted source behind every fact.",
+      ...(checks ? ["The same questions again at the end."] : []),
+    ];
+    return (
+      <Panel>
+        <p className="rise text-xs font-semibold uppercase tracking-[0.18em] text-muted" style={at(0)}>
+          Before we start
+        </p>
+        <h2 className="rise mt-1 font-serif text-3xl" style={at(0, 10)}>
+          {info.name} in women
+        </h2>
+        <p className="rise mt-4 leading-relaxed" style={at(1)}>
+          {info.intro.text}{" "}
+          <a href={info.intro.sourceUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-accent underline underline-offset-2">
+            {info.intro.sourceOrg}
+          </a>
+        </p>
+        <h3 className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-muted">What you&apos;ll do</h3>
+        <ol className="mt-3 grid gap-2.5 [transform-style:preserve-3d]">
+          {plan.map((item, i) => (
+            <li key={item} className="chip rise flex items-start gap-3 px-4 py-3 text-sm" style={at(i + 2, 20)}>
+              <span className="font-serif text-muted">{i + 1}.</span>
+              {item}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-sm text-muted">About 5 minutes. You can ask your teacher questions at any time.</p>
+        {info.urgent && (
+          <p className="mt-6 rounded-md border border-alert/40 px-4 py-3 text-sm">
+            <strong className="text-alert">If you have symptoms right now, stop and call 911.</strong> This lesson can wait.
+          </p>
+        )}
+        <button
+          onClick={() => {
+            setPhase(checks ? "before" : "lesson");
+            onSay(
+              checks
+                ? "First, a few quick true or false questions. Answer what you think now. There is no penalty for being wrong."
+                : lesson?.scenario ?? "Let's look at a case.",
+            );
+          }}
+          className="mt-8 rounded-md bg-accent px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          Start the lesson →
+        </button>
+      </Panel>
+    );
+  }
 
   if (phase === "before") {
     return (
