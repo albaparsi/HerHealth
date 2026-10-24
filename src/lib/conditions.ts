@@ -21,7 +21,7 @@ export const CONDITIONS: Condition[] = [
     tagline:
       "Period pain that stops your life is not \"just cramps.\" It takes years to get diagnosed.",
     urgent: false,
-    status: "soon",
+    status: "ready",
   },
   {
     slug: "adhd",
