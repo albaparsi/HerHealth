@@ -63,7 +63,8 @@ Write one short lesson from the passages the user gives you. Rules:
 - If the condition can be an emergency (heart attack), set urgent to true and say in the explanation to call 911 right away.
 - bodyRegions lists only the regions the scenario's symptoms involve; use whole_body for things like fatigue or cold sweat. Use back for upper back or between the shoulder blades, and lower_back for the lower back.
 - The lesson is shown visually: symptoms appear as labeled points on a body diagram, and "expected" is contrasted with what she actually felt.
-- Tone: calm, clear and serious, like a good clinician teaching. No exclamation marks or cutesy language.`;
+- Tone: calm, clear and serious, like a good clinician teaching. No exclamation marks or cutesy language.
+- Language: respectful, neutral and person-first. No stereotypes or caricatures of any group (by gender, age, race, body, disability or anything else), no comparisons to boys or men as a type of person, and nothing that mocks or blames. "expected" names the common assumption about the symptoms themselves (for example "Mainly hyperactivity" or "Sudden crushing chest pain"), never a picture of a kind of person.`;
 
 export async function searchElastic(condition: string, query: string): Promise<Passage[]> {
   const url = process.env.ELASTIC_URL;

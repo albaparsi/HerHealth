@@ -247,6 +247,10 @@ export function LessonView({
     onSay(scriptFor(lesson)[next]);
   }
 
+  // The question locks once answered, so the learner can't change her answer after seeing the explanation.
+  const canVisit = (i: number) => (i === 0 ? true : i === 1 ? chosen === null : chosen !== null);
+  const back = [step - 1, step - 2].find((i) => i >= 0 && canVisit(i));
+
   const answer = (i: number) => {
     setChosen(i);
     goTo(2);
@@ -258,8 +262,10 @@ export function LessonView({
         {STEPS.map((label, i) => (
           <li key={label} className="flex-1">
             <button
-              onClick={() => (i < 2 || chosen !== null) && goTo(i)}
-              className="w-full text-left"
+              onClick={() => canVisit(i) && goTo(i)}
+              disabled={!canVisit(i) && step !== i}
+              title={i === 1 && chosen !== null ? "Your answer is locked in" : undefined}
+              className="w-full text-left disabled:cursor-not-allowed"
               aria-current={step === i ? "step" : undefined}
             >
               <span className={`block h-1 rounded-full ${i <= step ? "bg-accent" : "bg-line"}`} />
@@ -275,6 +281,12 @@ export function LessonView({
         <p role="alert" className="mt-6 rounded-md bg-alert px-4 py-3 text-sm font-semibold text-white">
           If this is happening now, call 911. Do not drive yourself.
         </p>
+      )}
+
+      {back !== undefined && (
+        <button onClick={() => goTo(back)} className="mt-5 text-sm text-muted hover:text-accent">
+          ← Back{back === 0 && step === 2 ? " to the case" : ""}
+        </button>
       )}
 
       <div key={step} className="mt-6 [transform-style:preserve-3d]">

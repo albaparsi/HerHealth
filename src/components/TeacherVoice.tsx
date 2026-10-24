@@ -71,7 +71,9 @@ export default function TeacherVoice({
     } catch {
       // No Web Audio: the mouth falls back to a simple talking motion below.
     }
-    el.addEventListener("play", () => setPlaying(true));
+    // "playing" fires when sound actually starts, unlike "play", which fires while the file is still loading.
+    el.addEventListener("playing", () => setPlaying(true));
+    el.addEventListener("waiting", () => setPlaying(false));
     el.addEventListener("pause", () => setPlaying(false));
     el.addEventListener("ended", () => setPlaying(false));
     audio.current = el;
@@ -115,10 +117,12 @@ export default function TeacherVoice({
         let sum = 0;
         for (const b of buf) sum += ((b - 128) / 128) ** 2;
         level = Math.min(1, Math.max(0, (Math.sqrt(sum / buf.length) - 0.02) * 7));
-        if (sum > 0) heard = true;
+        if (level > 0) heard = true;
       }
-      // Cross-origin audio can leave the analyser silent; fake a talking rhythm instead.
-      if (!heard) level = 0.25 + 0.25 * Math.sin(t / 70) * Math.sin(t / 130);
+      // Without Web Audio, or if the analyser stays silent well into playback (cross-origin audio),
+      // fall back to a talking rhythm. Never before the voice has started.
+      const silentTooLong = !heard && (audio.current?.currentTime ?? 0) > 1;
+      if (!analyser.current || silentTooLong) level = 0.25 + 0.25 * Math.sin(t / 70) * Math.sin(t / 130);
       avatar.current?.setMouthOpen(level);
       frame = requestAnimationFrame(tick);
     };
