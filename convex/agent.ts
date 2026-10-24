@@ -73,7 +73,9 @@ export async function askAgent(input: string) {
     const data = await res.json();
     const answer: string | undefined = data?.response?.message?.trim();
     if (!answer || data.status !== "completed") return null;
-    return { answer, sources: sourcesIn(data.steps) };
+    const sources = sourcesIn(data.steps);
+    console.log(`askAgent: answered by ${AGENT_ID} with ${sources.length} sources`);
+    return { answer, sources };
   } catch (e) {
     console.log(`askAgent failed: ${e}`);
     return null;

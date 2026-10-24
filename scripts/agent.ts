@@ -10,10 +10,10 @@ const TOOL = {
     query: `FROM ${INDEX} METADATA _score | WHERE condition == ?condition AND MATCH(passage, ?question) | SORT _score DESC | LIMIT 5 | KEEP title, url, org, passage`,
     params: {
       condition: {
-        type: "keyword",
+        type: "string",
         description: "The lesson's condition id: heart-attack, endometriosis or adhd",
       },
-      question: { type: "text", description: "What to search for, in plain words" },
+      question: { type: "string", description: "What to search for, in plain words" },
     },
   },
   tags: ["herhealth"],
