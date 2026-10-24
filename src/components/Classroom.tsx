@@ -57,7 +57,7 @@ export default function Classroom({
   const [welcomed, setWelcomed] = useState(false);
   const [caption, setCaption] = useState(
     custom
-      ? `Hi, I'm your teacher. Today's lesson is about ${/^.[a-z]/.test(custom.topic) ? custom.topic.charAt(0).toLowerCase() + custom.topic.slice(1) : custom.topic}. Press begin when you're ready.`
+      ? `Hi, I'm your teacher. Today's lesson is about ${custom.topic.replace(/\b[A-Z][a-z]+\b/g, (w) => w.toLowerCase())}. Press begin when you're ready.`
       : `Hi, I'm your teacher. Today we'll look at how ${topic} can show up in women. Press begin when you're ready.`,
   );
   const [lines, setLines] = useState<string[]>([]);
