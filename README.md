@@ -1,16 +1,23 @@
 # HerHealth
 
-Many conditions show up differently in women, and those signs get missed. A heart attack can feel
-like jaw pain and nausea. Endometriosis can take years to diagnose. ADHD in women is often missed.
-HerHealth is a 3D teacher who talks you through a real-life case, quizzes you, and shows you what's
-happening in the body. Every fact links to a trusted medical source.
+Women's symptoms often get missed because medicine studied men. HerHealth is an AI teacher that turns
+any health topic into a lesson for women, with every fact checked against trusted sources.
+
+A 3D teacher talks you through a real-life case, quizzes you, shows what's happening in the body, and
+answers your questions out loud. Every fact links to the trusted medical source and the exact sentence
+it came from.
 
 Live: https://her-health-wheat.vercel.app
 
 Built solo at Cal Hacks 13.0. Education, not medical advice.
 
 ## What it does
-- **Three guided lessons:** heart attack, endometriosis and ADHD. Each lesson starts with a welcome
+- **Make a lesson on anything:** type a topic or paste a link and get a full lesson in about 40
+  seconds. Every lesson is framed around a woman and what the sources say about the topic in women
+  (how symptoms differ, why it gets missed, pregnancy, periods, menopause, differences in risk). Besides
+  MedlinePlus, it runs a web search limited to the trusted sites below to find pages about the topic in
+  women. If the sources describe no difference, the lesson says so instead of inventing one.
+- **Three ready-made lessons:** heart attack, endometriosis and ADHD. Each lesson starts with a welcome
   from the teacher and a short intro, then a "Before we start" true/false check, a case with a
   question, and an explanation on a body map. It ends with "Check what you learned" and the sources,
   with the exact quote behind each fact.
@@ -20,19 +27,21 @@ Built solo at Cal Hacks 13.0. Education, not medical advice.
   sources. In the built-in lessons, the answer comes from an Elastic Agent Builder agent (the
   "HerHealth tutor") that searches the trusted-source index with an ES|QL tool. If the agent is
   unavailable, Claude answers instead.
-- **Make a lesson on anything:** type a topic or paste a link. Every lesson is framed around a woman
-  and what the sources say about the topic in women (pregnancy, periods, menopause, differences in
-  risk). If the sources describe no difference, the lesson says so.
 - **Med student mode:** a clinical vignette, a board-style question, red flags, and what else to
   consider.
 - **Chrome extension:** "Teach me this page", or right-click a highlighted phrase to turn it into a
   lesson. You can download it from the Make a lesson page.
-- **Impact page:** shows how much learners improve from the first check to the last.
+- **Your progress:** the home page lists every lesson you've started or finished, including ones you
+  made, with your before → after scores. It's saved in your browser with a random ID; there are no
+  accounts and no personal data.
+- **Impact page:** shows how much learners improve from the first check to the last, across the
+  built-in lessons.
 
 ## How we keep it accurate
 1. **Trusted sources only.** Lessons are built from NIH, MedlinePlus, CDC, womenshealth.gov, ACOG,
    WHO, FDA, Mayo Clinic, Cleveland Clinic and NHS. A link from any other site is never taught from.
    The app works out its topic and teaches that topic from MedlinePlus instead, with a note that says so.
+   The web search for Make a lesson is restricted to these same domains.
 2. **Grounded writing.** Claude may only use facts stated in the retrieved passages. Each fact must
    cite its source and quote one sentence word for word.
 3. **Quote check.** Code checks that every quote really appears in its source. Facts and quiz items
@@ -52,8 +61,10 @@ Cartesia Sonic (voice) · Web Speech API (mic questions) · Chrome MV3 extension
 ## Project layout
 - `src/components/Classroom.tsx`: the lesson flow (welcome, intro, checks, case, explanation)
 - `src/components/Avatar.tsx`, `TeacherVoice.tsx`, `AskTeacher.tsx`: the teacher
+- `src/components/MyProgress.tsx`, `convex/attempts.ts`: quiz scores, Your progress and the impact page
 - `convex/lessons.ts`: built-in lessons from Elastic, the lesson rules, and the fact-check (`checkLesson`)
-- `convex/custom.ts`: Make a lesson, including the trusted-domain allowlist and MedlinePlus lookup
+- `convex/custom.ts`: Make a lesson, including the trusted-domain allowlist, MedlinePlus lookup and the
+  trusted-site web search
 - `convex/ask.ts`, `convex/agent.ts`, `convex/speech.ts`: answers (Agent Builder tutor, Claude fallback) and voice
 - `extension/`: the Chrome extension (zipped to `public/her-health-extension.zip`)
 
@@ -91,12 +102,12 @@ such as TalkingHead's "mpfb.glb".
    Kibana's URL is worked out from `ELASTIC_URL`, or you can set `KIBANA_URL`.
 
 ## Deploy
-1. Import the GitHub repo in Vercel (framework: Next.js).
-2. In Convex dashboard → production → Settings, create a **Deploy Key**; add it to Vercel as
-   `CONVEX_DEPLOY_KEY`.
-3. Set the Vercel build command to `npx convex deploy --cmd 'npm run build'`.
-4. Server-side keys (Anthropic, Cartesia, Elastic) go in Convex env vars:
+1. Deploy the backend: `npx convex deploy` (pushes the functions in `convex/` to your production
+   deployment).
+2. Server-side keys (Anthropic, Cartesia, Elastic) go in Convex env vars, never in the frontend:
    `npx convex env set --prod ANTHROPIC_API_KEY ...`
+3. Import the GitHub repo in Vercel (framework: Next.js) and set `NEXT_PUBLIC_CONVEX_URL` to the
+   production Convex URL. Vercel redeploys the frontend on every push to `main`.
 
 ### Chrome extension
 Unzip `public/her-health-extension.zip`, open `chrome://extensions`, turn on Developer mode, and
