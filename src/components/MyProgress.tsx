@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { Component, useSyncExternalStore, type ReactNode } from "react";
 import { api } from "../../convex/_generated/api";
 import { CONDITIONS } from "@/lib/conditions";
 import { existingLearnerId } from "@/lib/learner";
@@ -12,7 +12,22 @@ const noSubscribe = () => () => {};
 
 /** The lessons this browser has taken, with before and after scores. Shows nothing until there are some. */
 export default function MyProgress() {
-  return convexEnabled ? <Progress /> : null;
+  return convexEnabled ? (
+    <Quiet>
+      <Progress />
+    </Quiet>
+  ) : null;
+}
+
+/** Hides the section instead of breaking the home page if progress can't load. */
+class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 function Progress() {
