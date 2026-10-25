@@ -14,6 +14,7 @@ import { QUICK_CHECKS, getCondition, type CheckItem } from "@/lib/conditions";
 import TeacherVoice from "./TeacherVoice";
 import Tilt from "./Tilt";
 import { at } from "@/lib/depth";
+import { learnerId } from "@/lib/learner";
 import AskTeacher from "./AskTeacher";
 
 const Avatar = dynamic(() => import("./Avatar"), { ssr: false });
@@ -170,12 +171,12 @@ function Board({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Impact scores are kept for the built-in lessons only.
+  // Scores feed the learner's own progress; lessons you make are kept as "custom:<id>".
+  const progressKey = custom ? `custom:${custom.id}` : condition;
   const save = (phase: "before" | "after", score: number) =>
-    !custom &&
-    condition &&
+    progressKey &&
     checks &&
-    record({ learnerId: learnerId(), condition, phase, score, total: checks.length }).catch(() => {});
+    record({ learnerId: learnerId(), condition: progressKey, phase, score, total: checks.length }).catch(() => {});
 
   const newCase = async () => {
     setBusy(true);
@@ -572,18 +573,4 @@ function Next({ onClick, children }: { onClick: () => void; children: ReactNode 
       {children} →
     </button>
   );
-}
-
-/** Anonymous id kept in this browser, so before and after scores pair up. */
-function learnerId() {
-  try {
-    let id = localStorage.getItem("her-signs-learner");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("her-signs-learner", id);
-    }
-    return id;
-  } catch {
-    return "anonymous";
-  }
 }

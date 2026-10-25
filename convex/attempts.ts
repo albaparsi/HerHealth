@@ -31,9 +31,13 @@ export const impact = query({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("attempts").collect();
-    const byCondition = new Map<string, { learners: Set<string>; pre: number[]; post: number[]; improved: number; completed: number }>();
+    const byCondition = new Map<
+      string,
+      { learners: Set<string>; pre: number[]; post: number[]; improved: number; completed: number }
+    >();
     for (const r of rows) {
-      if (!r.total) continue;
+      // Lessons people make are personal progress only; the impact page covers the built-in lessons.
+      if (!r.total || r.condition.startsWith("custom:")) continue;
       const c = byCondition.get(r.condition) ?? { learners: new Set(), pre: [], post: [], improved: 0, completed: 0 };
       c.learners.add(r.learnerId);
       if (r.preScore !== undefined) c.pre.push(r.preScore / r.total);
@@ -53,5 +57,41 @@ export const impact = query({
       before: avg(c.pre),
       after: avg(c.post),
     }));
+  },
+});
+
+/** This learner's latest attempt at each lesson, newest first, for "Your progress". */
+export const mine = query({
+  args: { learnerId: v.string() },
+  handler: async (ctx, { learnerId }) => {
+    const rows = await ctx.db
+      .query("attempts")
+      .withIndex("by_learner", (q) => q.eq("learnerId", learnerId))
+      .collect();
+    const latest = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) {
+      const seen = latest.get(r.condition);
+      if (!seen || r._creationTime > seen._creationTime) latest.set(r.condition, r);
+    }
+    const out = await Promise.all(
+      [...latest.values()].map(async (r) => {
+        let topic: string | null = null;
+        if (r.condition.startsWith("custom:")) {
+          const id = ctx.db.normalizeId("customLessons", r.condition.slice("custom:".length));
+          const lesson = id ? await ctx.db.get(id) : null;
+          if (!lesson) return null;
+          topic = lesson.topic;
+        }
+        return {
+          key: r.condition,
+          topic,
+          before: r.preScore ?? null,
+          after: r.postScore ?? null,
+          total: r.total ?? null,
+          at: r._creationTime,
+        };
+      }),
+    );
+    return out.filter((r) => r !== null).sort((a, b) => b.at - a.at);
   },
 });

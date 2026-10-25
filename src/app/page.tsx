@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MyProgress from "@/components/MyProgress";
 import { CONDITIONS } from "@/lib/conditions";
 
 export default function Home() {
@@ -46,6 +47,8 @@ export default function Home() {
         </span>
         <span className="text-sm font-semibold text-accent">Make a lesson →</span>
       </Link>
+
+      <MyProgress />
 
       <p className="mt-12 border-t border-line pt-6 text-xs text-muted">
         Education, not medical advice. Sources: CDC, NIH, MedlinePlus, womenshealth.gov, ACOG.

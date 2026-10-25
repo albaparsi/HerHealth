@@ -87,8 +87,10 @@ export default function AboutPage() {
 
       <Section title="Privacy">
         You don&apos;t sign in and we don&apos;t ask for your name. Your browser keeps a random ID so your
-        before and after quiz scores can be paired, and only those scores are stored, for the{" "}
-        <Link href="/impact" className="underline">impact page</Link>.
+        before and after quiz scores can be paired and your progress shown on the home page. Only those
+        scores are stored, and the built-in lessons&apos; scores also feed the{" "}
+        <Link href="/impact" className="underline">impact page</Link>. Clearing your browser data resets your
+        progress.
       </Section>
 
       <Section title="Sources">
