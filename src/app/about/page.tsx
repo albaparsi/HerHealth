@@ -32,7 +32,7 @@ export default function AboutPage() {
           <li>We collected pages from public health agencies and medical societies, listed below.</li>
           <li>
             You can also make a lesson on any topic. Those use MedlinePlus, or a page you link from a reviewed
-            medical site.
+            medical site, plus a web search limited to the reviewed sites for how the topic shows up in women.
           </li>
           <li>Those pages are split into short passages and stored in a search index (Elastic).</li>
           <li>

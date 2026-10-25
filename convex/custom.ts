@@ -104,6 +104,91 @@ async function womenPassages(topic: string, have: Passage[]): Promise<Passage[]>
   return extra;
 }
 
+const ORG_NAMES: Record<string, string> = {
+  "nih.gov": "NIH",
+  "cdc.gov": "CDC",
+  "medlineplus.gov": "MedlinePlus",
+  "womenshealth.gov": "womenshealth.gov",
+  "acog.org": "ACOG",
+  "who.int": "WHO",
+  "fda.gov": "FDA",
+  "heart.org": "American Heart Association",
+  "mayoclinic.org": "Mayo Clinic",
+  "clevelandclinic.org": "Cleveland Clinic",
+  "nhs.uk": "NHS",
+};
+const orgFor = (host: string) => ORG_NAMES[TRUSTED.find((d) => host === d || host.endsWith(`.${d}`)) ?? ""] ?? host;
+
+const ABOUT_WOMEN =
+  /\b(women|woman|female|females|girls|pregnan\w*|menopaus\w*|menstrua\w*|periods?|sex differences?|hormon\w*)\b/i;
+
+/**
+ * Searches only the trusted sites for how a topic shows up in women, and returns passages from the pages
+ * Claude fetched. Pages are fetched by Anthropic's web fetch tool, which some sites allow when they block us.
+ * Returns nothing on any failure, so a lesson can still be made from MedlinePlus alone.
+ */
+async function searchTrustedWeb(client: Anthropic, topic: string): Promise<Passage[]> {
+  const messages: Anthropic.MessageParam[] = [
+    {
+      role: "user",
+      content: `Find what trusted medical sources say about how ${topic} shows up in women and girls: how symptoms can differ from what people expect, why it gets missed, diagnosis, and risk, including pregnancy or menopause if relevant. Search, then fetch the two or three most relevant pages that discuss women specifically. When you're done, reply with just "done".`,
+    },
+  ];
+  const found: Passage[] = [];
+  try {
+    for (let turn = 0; turn < 3; turn++) {
+      const response = await client.messages.create(
+        {
+          model: "claude-opus-5-5",
+          max_tokens: 4000,
+          output_config: { effort: "low" },
+          tools: [
+            { type: "web_search_20250305", name: "web_search", max_uses: 3, allowed_domains: TRUSTED },
+            {
+              type: "web_fetch_20250910",
+              name: "web_fetch",
+              max_uses: 3,
+              allowed_domains: TRUSTED,
+              max_content_tokens: 8000,
+            },
+          ],
+          messages,
+        },
+        { timeout: 60_000, maxRetries: 0 },
+      );
+      for (const block of response.content) {
+        if (block.type !== "web_fetch_tool_result" || block.content.type !== "web_fetch_result") continue;
+        const { url, content } = block.content;
+        const host = new URL(url).hostname.replace(/^www\./, "");
+        if (!isTrusted(host) || content.source.type !== "text") continue;
+        // Keep the parts of the page that talk about women, a few paragraphs at a time.
+        const paragraphs = content.source.data.split(/\n\s*\n/).map((t) => t.replace(/\s+/g, " ").trim());
+        let chunk = "";
+        let kept = 0;
+        for (const para of paragraphs) {
+          if (!ABOUT_WOMEN.test(para) || para.length < 60) continue;
+          chunk = chunk ? `${chunk} ${para}` : para;
+          if (chunk.length >= 1500) {
+            found.push({ title: content.title ?? orgFor(host), url, org: orgFor(host), passage: chunk.slice(0, 3000) });
+            chunk = "";
+            if (++kept === 2) break;
+          }
+        }
+        if (chunk.length >= 200 && kept < 2)
+          found.push({ title: content.title ?? orgFor(host), url, org: orgFor(host), passage: chunk.slice(0, 3000) });
+      }
+      if (response.stop_reason !== "pause_turn") break;
+      messages.push({ role: "assistant", content: response.content });
+    }
+  } catch (e) {
+    console.log(`searchTrustedWeb failed: ${e}`);
+  }
+  console.log(
+    `searchTrustedWeb "${topic}": ${found.length} passages from ${new Set(found.map((p) => p.url)).size} pages`,
+  );
+  return found.slice(0, 5);
+}
+
 // Some sites refuse requests that don't look like a browser.
 const BROWSER_HEADERS = {
   "User-Agent":
@@ -317,8 +402,12 @@ async function make(
     throw new ConvexError("Type a topic or paste a link.");
   }
 
-  // Lessons are always about women, so also look for what the trusted sources say about this topic in women.
-  passages = [...passages, ...(await womenPassages(name, passages))];
+  // Lessons are always about women, so also look for what the trusted sources say about this topic in women:
+  // MedlinePlus pages on women, pregnancy and menopause, and a web search limited to the trusted sites.
+  const client = new Anthropic();
+  const [fromMedline, fromWeb] = await Promise.all([womenPassages(name, passages), searchTrustedWeb(client, name)]);
+  const seen = new Set(passages.map((p) => p.url));
+  passages = [...passages, ...fromMedline, ...fromWeb.filter((p) => !seen.has(p.url))];
 
   const sources = passages
     .map(
@@ -326,7 +415,6 @@ async function make(
     )
     .join("\n\n");
 
-  const client = new Anthropic();
   const response = await client.beta.messages.parse({
     model: "claude-opus-5-5",
     max_tokens: 16000,
