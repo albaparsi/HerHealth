@@ -49,6 +49,8 @@ export default function AskTeacher({
   const submit = async (text: string) => {
     const q = text.trim();
     if (!q || busy) return;
+    // Clear the box as soon as a question is sent, typed or spoken, whatever the answer turns out to be.
+    setQuestion("");
     setBusy(true);
     setError(null);
     setResult(null);
